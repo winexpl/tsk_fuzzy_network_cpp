@@ -15,16 +15,16 @@ tsk::layers::fuzzy_layer::fuzzy_layer(int dim_input, int dim_output) :
     b(std::vector<double>(dim_output))
 {
     std::mt19937 gen(rd());
-    std::uniform_int_distribution<> dis_sigma(0.1, 1);
-    std::uniform_int_distribution<> dis_c(0.1, 1);
-    std::uniform_int_distribution<> dis_b(1, 5);
+    std::uniform_real_distribution<> dis_sigma(0.1, 1);
+    std::uniform_real_distribution<> dis_c(0.1, 1);
+    std::uniform_real_distribution<> dis_b(1, 5);
 
     std::generate(std::execution::par, sigma.begin(), sigma.end(), [&]() { return dis_sigma(gen); });
     std::generate(std::execution::par, c.begin(), c.end(), [&]() { return dis_c(gen); });
     std::generate(std::execution::par, b.begin(), b.end(), [&]() { return dis_b(gen); });
 }
 
-std::vector<double> &&tsk::layers::fuzzy_layer::get(std::vector<double>& x) {
+std::vector<double> tsk::layers::fuzzy_layer::get(std::vector<double>& x) {
     if(x.size() != dim_input)
         throw std::runtime_error("the size of the input vector is not equal to the dimension of the fuzzification layer");
     std::vector<double> y(dim_output);

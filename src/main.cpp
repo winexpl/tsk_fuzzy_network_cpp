@@ -2,11 +2,18 @@
 #include "tsk_fuzzy_network/tsk.h"
 #include <iostream>
 
+std::ostream& operator<<(std::ostream& os, std::vector<double>&& x) {
+    for(int i = 0; i < x.size(); i++) {
+        os << "x[" << i << "] = " << x[i] << "\n";
+    }
+    os.flush();
+    return os;
+}
 
 int main(int argc, char* argv[]) {
-    tsk::TSK tsk(13,13);
-    std::cout << std::vector<double>(123).size() << std::endl;
-    
-    int x = 0;
+    tsk::TSK tsk(1,1);
+    std::vector<double> x{1};
+    std::cout << tsk.fuzzy_layer.get(x);
+
     std::cout << "hi" << std::endl;
 }

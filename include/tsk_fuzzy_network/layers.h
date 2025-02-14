@@ -39,7 +39,7 @@ struct tsk::layers::fuzzy_layer : public tsk::layers::layer {
     std::vector<double> b;
 
     fuzzy_layer(int dim_input, int dim_output);
-    std::vector<double> &&get(std::vector<double>&);
+    std::vector<double> get(std::vector<double>&);
 };
 
 struct tsk::layers::multiple_layer : tsk::layers::layer {
@@ -49,7 +49,7 @@ struct tsk::layers::multiple_layer : tsk::layers::layer {
     boost::multi_array<double, 2> p;
     
     multiple_layer(int dim_input, int dim_output, int N);
-    std::vector<double> &&get(std::vector<double>&, std::vector<double>&);
+    std::vector<double> get(std::vector<double>&, std::vector<double>&);
 };
 
 struct tsk::layers::role_multiple_layer : tsk::layers::layer {
@@ -57,7 +57,7 @@ struct tsk::layers::role_multiple_layer : tsk::layers::layer {
      * second layer
      */
     role_multiple_layer(int dim_input, int dim_output);
-    std::vector<double> &&get(std::vector<double>&);
+    std::vector<double> get(std::vector<double>&);
 };
 
 struct tsk::layers::sum_layer : tsk::layers::layer {

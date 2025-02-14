@@ -1,4 +1,5 @@
 #include "tsk_fuzzy_network/layers.h"
+#include "tsk_fuzzy_network/tsk.h"
 #include <iostream>
 #include <execution>
 
@@ -16,7 +17,8 @@ tsk::layers::multiple_layer::multiple_layer(int dim_input, int dim_output, int N
     std::generate(std::execution::par, begin, end, [&]() { return dis(gen); });
 }
 
-std::vector<double> tsk::layers::multiple_layer::get(std::vector<double>& v, std::vector<double>& x) {
+template <tsk::is_indexed T, tsk::is_indexed Y>
+std::vector<double> tsk::layers::multiple_layer::get(T& v, Y& x) {
     if(x.size() != dim_input)
         throw std::runtime_error("the size of the input vector is not equal to the dimension of the multiplication layer");
     

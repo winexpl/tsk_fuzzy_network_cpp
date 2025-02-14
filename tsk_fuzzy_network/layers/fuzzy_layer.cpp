@@ -1,4 +1,5 @@
 #include "tsk_fuzzy_network/layers.h"
+#include "tsk_fuzzy_network/tsk.h"
 #include <exception>
 #include <algorithm>
 #include <execution>
@@ -24,7 +25,8 @@ tsk::layers::fuzzy_layer::fuzzy_layer(int dim_input, int dim_output) :
     std::generate(std::execution::par, b.begin(), b.end(), [&]() { return dis_b(gen); });
 }
 
-std::vector<double> tsk::layers::fuzzy_layer::get(std::vector<double>& x) {
+template <tsk::is_indexed T>
+std::vector<double> tsk::layers::fuzzy_layer::get(T& x) {
     if(x.size() != dim_input)
         throw std::runtime_error("the size of the input vector is not equal to the dimension of the fuzzification layer");
     std::vector<double> y(dim_output);

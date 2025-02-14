@@ -13,7 +13,6 @@ std::ostream& operator<<(std::ostream& os, std::vector<double>&& x) {
 int main(int argc, char* argv[]) {
     tsk::TSK tsk(1,1);
     std::vector<double> x{1};
-    std::cout << tsk.fuzzy_layer.get(x);
-
-    std::cout << "hi" << std::endl;
+    
+    std::cout << tsk.predict(x) << std::endl;
 }

@@ -1,10 +1,12 @@
 #include "tsk_fuzzy_network/layers.h"
+#include "tsk_fuzzy_network/tsk.h"
 #include <algorithm>
 
 tsk::layers::sum_layer::sum_layer(int dim_input, int dim_output) :
     layer(dim_input, dim_output) { }
 
-double tsk::layers::sum_layer::get(std::vector<double>& x, std::vector<double>& v) {
+template <tsk::is_indexed T, tsk::is_indexed Y>
+double tsk::layers::sum_layer::get(T& x, Y& v) {
     /**
      * x - выход предыдущего слоя
      * v - выход слоя role_multiple

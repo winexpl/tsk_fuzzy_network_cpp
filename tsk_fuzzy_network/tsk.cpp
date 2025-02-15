@@ -1,5 +1,6 @@
-#include "tsk_fuzzy_network/tsk.h"
 #include "tsk_fuzzy_network/layers.h"
+#include "tsk_fuzzy_network/tsk.h"
+
 
 tsk::TSK::TSK(int N, int M, int out)
     : fuzzy_layer{tsk::layers::fuzzy_layer(N, M)},

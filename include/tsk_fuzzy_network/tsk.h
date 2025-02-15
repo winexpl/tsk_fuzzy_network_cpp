@@ -1,27 +1,11 @@
 #ifndef TSK_MODEL
 #define TSK_MODEL
 
-#include "layers.h"
+#include "tsk_fuzzy_network/layers.h"
+
 
 namespace tsk {
     struct TSK;
-
-    template <typename T>
-    concept is_indexed = requires (T a, int i) {
-        { a[i] } -> std::convertible_to<typename T::value_type>;
-        requires !requires { a[i][0]; };
-    };
-
-    template <typename T>
-    concept is_double_indexed = requires (T a, int i, int j) {
-        { a[i][j] } -> std::convertible_to<typename T::value_type>;
-        requires !requires { a[i][j][0]; };
-    };
-
-    template <is_indexed T, is_indexed Y>
-    bool is_same_length(const T& a1, const Y& a2) {
-        return (a1.cend() - a1.cbegin()) == (a2.cend() - a2.cbegin());
-    }
 }
 
 struct tsk::TSK {
@@ -34,9 +18,7 @@ struct tsk::TSK {
 
     template <is_double_indexed T, is_indexed Y>
     std::vector<double> evaluate(T&, Y&);
-
     
-
     template <is_indexed T>
     double predict(T&);
 private:

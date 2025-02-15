@@ -6,21 +6,38 @@
 #include <cmath>
 #include <random>
 #include "boost/multi_array.hpp"
-#include "tsk.h"
 
 
-namespace tsk::layers {
-    struct layer;
-    struct fuzzy_layer;
-    struct multiple_layer;
-    struct role_multiple_layer;
-    struct sum_layer;
+namespace tsk {
+    template <typename T>
+    concept is_indexed = requires (T a, int i) {
+        { a[i] } -> std::convertible_to<typename T::value_type>;
+        requires !requires { a[i][0]; };
+    };
 
-    double general_gaussian(double x, double sigma, double c, double b);
+    template <typename T>
+    concept is_double_indexed = requires (T a, int i, int j) {
+        { a[i][j] } -> std::convertible_to<typename T::value_type>;
+        requires !requires { a[i][j][0]; };
+    };
 
-    static int write(std::ostream& os, layer& layer);
+    template <is_indexed T, is_indexed Y>
+    bool is_same_length(const T& a1, const Y& a2) {
+        return (a1.cend() - a1.cbegin()) == (a2.cend() - a2.cbegin());
+    }
+    namespace layers {
+        struct layer;
+        struct fuzzy_layer;
+        struct multiple_layer;
+        struct role_multiple_layer;
+        struct sum_layer;
 
-    inline std::random_device rd;
+        double general_gaussian(double x, double sigma, double c, double b);
+
+        static int write(std::ostream& os, layer& layer);
+
+        inline std::random_device rd;
+    }
 }
 
 struct tsk::layers::layer {

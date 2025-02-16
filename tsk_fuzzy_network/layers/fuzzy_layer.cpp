@@ -25,20 +25,3 @@ tsk::layers::fuzzy_layer::fuzzy_layer(int dim_input, int dim_output) :
     std::generate(std::execution::par, b.begin(), b.end(), [&]() { return dis_b(gen); });
 }
 
-template <tsk::is_indexed T>
-std::vector<double> tsk::layers::fuzzy_layer::get(T& x) {
-    if(x.size() != dim_input)
-        throw std::runtime_error("the size of the input vector is not equal to the dimension of the fuzzification layer");
-    std::vector<double> y(dim_output);
-    
-    int M = dim_output / dim_input;
-    for(int i = 0; i < dim_input; i++) {
-        for(int j = 0; j < M; j++) {
-            int k = i*M+j;
-            y[k] = fuzzy_function(x[i], sigma[k], c[k], b[k]);
-        }
-    }
-    return std::move(y);
-}
-
-

@@ -94,5 +94,73 @@ struct tsk::layers::sum_layer : tsk::layers::layer {
     double get(T&, Y&);
 };
 
+template <tsk::is_indexed T>
+std::vector<double> tsk::layers::fuzzy_layer::get(T& x) {
+    if(x.size() != dim_input)
+        throw std::runtime_error("the size of the input vector is not equal to the dimension of the fuzzification layer");
+    std::vector<double> y(dim_output);
+    
+    int M = dim_output / dim_input;
+    for(int i = 0; i < dim_input; i++) {
+        for(int j = 0; j < M; j++) {
+            int k = i*M+j;
+            y[k] = fuzzy_function(x[i], sigma[k], c[k], b[k]);
+        }
+    }
+    return std::move(y);
+}
+
+template <tsk::is_indexed T, tsk::is_indexed Y>
+std::vector<double> tsk::layers::multiple_layer::get(T& v, Y& x) {
+    if(v.size() != dim_input)
+        throw std::runtime_error("the size of the input vector is not equal to the dimension of the multiplication layer");
+    
+    std::vector<double> y(dim_output);
+    int num_of_out = dim_output / dim_input;
+    int num_of_in = x.size();
+    for(int i = 0; i < dim_input; i++) {
+        for(int j = 0; j < num_of_out; j++) {
+            int l = i*num_of_out+j;
+            double temp = p[l][0];
+            for(int k = 0; k < num_of_in; k++) {
+                temp += p[l][k+1] * x[k];
+            }
+            temp *= v[i];
+            y[l] = temp;
+        }
+    }
+    return std::move(y);
+}
+
+template <tsk::is_indexed T>
+std::vector<double> tsk::layers::role_multiple_layer::get(T& x) {
+    if(x.size() != dim_input)
+        throw std::runtime_error("the size of the input vector is not equal to the dimension of the multiplication layer");
+    
+    std::vector<double> y(dim_output);
+    int N = dim_input / dim_output;
+    for(int i = 0; i < dim_output; i++) {
+        y[i] = 1;
+        for(int j = 0; j < N; j++) {
+            int k = i+j*dim_output;
+            y[i] *= x[k];
+        }
+    }
+
+    return std::move(y);
+}
+
+template <tsk::is_indexed T, tsk::is_indexed Y>
+double tsk::layers::sum_layer::get(T& x, Y& v) {
+    /**
+     * x - выход предыдущего слоя
+     * v - выход слоя role_multiple
+     * методом поддерживается только модель с одним выходом
+     */
+    double y = std::accumulate(x.begin(), x.end(), 0.0);
+    double sum = std::accumulate(v.begin(), v.end(), 0.0);
+
+    return y/sum;
+}
 
 #endif

@@ -2,6 +2,7 @@
 #define TSK_MODEL
 
 #include "tsk_fuzzy_network/layers.h"
+#include <iostream>
 
 
 namespace tsk {
@@ -31,5 +32,33 @@ private:
     int M; // число правил
     int out; // число выходов
 };
+
+template <tsk::is_double_indexed T>
+std::vector<double> tsk::TSK::predict(T& x) {
+    for(int i = 0; i < x.size(); i++) {
+        auto xi = x[i];
+        predict(xi);
+    }
+}
+
+template <tsk::is_double_indexed T, tsk::is_indexed Y>
+std::vector<double> tsk::TSK::evaluate(T& x, Y& t) {
+    /**
+     * x - входные векторы
+     * t - ожидаемые значения
+     * x.size() == t.size()
+     * return значения которые дает модель
+     */
+
+}
+
+template <tsk::is_indexed T>
+double tsk::TSK::predict(T& x) {
+    std::vector<double> y1 = fuzzy_layer.get(x);
+    std::vector<double> y2 = role_multiple_layer.get(y1);
+    std::vector<double> y3 = multiple_layer.get(y2, x);
+    double y4 = sum_layer.get(y3, y2);
+    return y4;
+}
 
 #endif

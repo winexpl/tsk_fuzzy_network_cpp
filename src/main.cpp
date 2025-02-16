@@ -1,5 +1,6 @@
 #include "tsk_fuzzy_network/layers.h"
 #include "tsk_fuzzy_network/tsk.h"
+#include "csv_reader.h"
 #include <iostream>
 
 std::ostream& operator<<(std::ostream& os, std::vector<double>&& x) {
@@ -11,8 +12,8 @@ std::ostream& operator<<(std::ostream& os, std::vector<double>&& x) {
 }
 
 int main(int argc, char* argv[]) {
-    tsk::TSK tsk(1,1);
-    std::vector<double> x{1};
-    
+    tsk::TSK tsk(3,1);
+    std::vector<double> x{3,1,2};
     std::cout << tsk.predict(x) << std::endl;
+    a();
 }

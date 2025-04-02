@@ -4,24 +4,24 @@
 #include <algorithm>
 #include <execution>
 
-double tsk::layers::general_gaussian(double x, double sigma, double c, double b) {
+double tsk::layers::generalGaussian(double x, double sigma, double c, double b) {
     return 1 / (1 + pow( (x-c)/sigma, 2*b));
 };
 
-tsk::layers::fuzzy_layer::fuzzy_layer(int dim_input, int dim_output) :
-    layer(dim_input, dim_output),
-    fuzzy_function(tsk::layers::general_gaussian),
-    sigma(std::vector<double>(dim_output)),
-    c(std::vector<double>(dim_output)),
-    b(std::vector<double>(dim_output))
+tsk::layers::FuzzyLayer::FuzzyLayer(int dimInput, int dimOutput) :
+    Layer(dimInput, dimOutput),
+    fuzzyFunction(tsk::layers::generalGaussian),
+    sigma(std::vector<double>(dimOutput)),
+    c(std::vector<double>(dimOutput)),
+    b(std::vector<double>(dimOutput))
 {
     std::mt19937 gen(rd());
-    std::uniform_real_distribution<> dis_sigma(0.1, 1);
-    std::uniform_real_distribution<> dis_c(0.1, 1);
-    std::uniform_real_distribution<> dis_b(1, 5);
+    std::uniform_real_distribution<> disSigma(0.1, 1);
+    std::uniform_real_distribution<> disC(0.1, 1);
+    std::uniform_real_distribution<> disB(1, 5);
 
-    std::generate(std::execution::par, sigma.begin(), sigma.end(), [&]() { return dis_sigma(gen); });
-    std::generate(std::execution::par, c.begin(), c.end(), [&]() { return dis_c(gen); });
-    std::generate(std::execution::par, b.begin(), b.end(), [&]() { return dis_b(gen); });
+    std::generate(std::execution::par, sigma.begin(), sigma.end(), [&]() { return disSigma(gen); });
+    std::generate(std::execution::par, c.begin(), c.end(), [&]() { return disC(gen); });
+    std::generate(std::execution::par, b.begin(), b.end(), [&]() { return disB(gen); });
 }
 

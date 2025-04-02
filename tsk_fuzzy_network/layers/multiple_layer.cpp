@@ -4,9 +4,9 @@
 #include <execution>
 
 
-tsk::layers::multiple_layer::multiple_layer(int dim_input, int dim_output, int N) :
-    layer(dim_input, dim_output),
-    p(boost::multi_array<double, 2>(boost::extents[dim_input][N+1]))
+tsk::layers::MultipleLayer::MultipleLayer(int dimInput, int dimOutput, int n) :
+    Layer(dimInput, dimOutput),
+    p(boost::multi_array<double, 2>(boost::extents[dimInput][n+1]))
 {
     std::uniform_real_distribution<> dis(0.0, 1.0);
     std::mt19937 gen(rd());

@@ -3,7 +3,8 @@
 
 #include "tsk_fuzzy_network/layers.h"
 #include <iostream>
-
+#include <vector>
+#include <eigen3/Eigen/SVD>
 
 namespace tsk {
     struct TSK;
@@ -12,53 +13,37 @@ namespace tsk {
 struct tsk::TSK {
     TSK(int N, int M, int out=1);
 
-    void update_p(boost::multi_array<double, 2>&& p);
+    void updateP(Eigen::MatrixXd&);
     
-    template <is_double_indexed T>
-    std::vector<double> predict(T&);
+    std::vector<double> predict(boost::multi_array<double,2>& x);
 
-    template <is_double_indexed T, is_indexed Y>
-    std::vector<double> evaluate(T&, Y&);
+    std::vector<double> evaluate(boost::multi_array<double,2>& x, std::vector<double>& y);
     
     template <is_indexed T>
-    double predict(T&);
+    double predict1(T& x) {
+        std::vector<double> y1 = _fuzzyLayer.get(x);
+        std::vector<double> y2 = _roleMultipleLayer.get(y1);
+        std::vector<double> y3 = _multipleLayer.get(y2, x);
+        double y4 = _sumLayer.get(y3, y2);
+        return y4;
+    }
+
+    boost::multi_array<double, 2>& getP();
+    std::vector<double>& getSigma();
+    std::vector<double>& getB();
+    std::vector<double>& getC();
+
 private:
-    tsk::layers::fuzzy_layer fuzzy_layer;
-    tsk::layers::role_multiple_layer role_multiple_layer;
-    tsk::layers::multiple_layer multiple_layer;
-    tsk::layers::sum_layer sum_layer;
+    tsk::layers::FuzzyLayer _fuzzyLayer;
+    tsk::layers::RoleMultipleLayer _roleMultipleLayer;
+    tsk::layers::MultipleLayer _multipleLayer;
+    tsk::layers::SumLayer _sumLayer;
     
-    int N; // число параметров
-    int M; // число правил
-    int out; // число выходов
+    int _n; // число параметров
+    int _m; // число правил
+    int _out; // число выходов
 };
 
-template <tsk::is_double_indexed T>
-std::vector<double> tsk::TSK::predict(T& x) {
-    for(int i = 0; i < x.size(); i++) {
-        auto xi = x[i];
-        predict(xi);
-    }
-}
 
-template <tsk::is_double_indexed T, tsk::is_indexed Y>
-std::vector<double> tsk::TSK::evaluate(T& x, Y& t) {
-    /**
-     * x - входные векторы
-     * t - ожидаемые значения
-     * x.size() == t.size()
-     * return значения которые дает модель
-     */
-
-}
-
-template <tsk::is_indexed T>
-double tsk::TSK::predict(T& x) {
-    std::vector<double> y1 = fuzzy_layer.get(x);
-    std::vector<double> y2 = role_multiple_layer.get(y1);
-    std::vector<double> y3 = multiple_layer.get(y2, x);
-    double y4 = sum_layer.get(y3, y2);
-    return y4;
-}
 
 #endif

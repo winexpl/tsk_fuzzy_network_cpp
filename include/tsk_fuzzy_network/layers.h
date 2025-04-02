@@ -2,9 +2,11 @@
 #define TSK_LAYERS
 
 #include <functional>
+#include <iostream>
 #include <vector>
 #include <cmath>
 #include <random>
+#include <utility>
 #include "boost/multi_array.hpp"
 
 
@@ -17,8 +19,7 @@ namespace tsk {
 
     template <typename T>
     concept is_double_indexed = requires (T a, int i, int j) {
-        { a[i][j] } -> std::convertible_to<typename T::value_type>;
-        requires !requires { a[i][j][0]; };
+        { a[i][j] } -> std::convertible_to<typename std::remove_reference<decltype(a[i][j])>::type>;
     };
 
     template <is_indexed T, is_indexed Y>
@@ -26,103 +27,103 @@ namespace tsk {
         return (a1.cend() - a1.cbegin()) == (a2.cend() - a2.cbegin());
     }
     namespace layers {
-        struct layer;
-        struct fuzzy_layer;
-        struct multiple_layer;
-        struct role_multiple_layer;
-        struct sum_layer;
+        struct Layer;
+        struct FuzzyLayer;
+        struct MultipleLayer;
+        struct RoleMultipleLayer;
+        struct SumLayer;
 
-        double general_gaussian(double x, double sigma, double c, double b);
+        double generalGaussian(double x, double sigma, double c, double b);
 
-        static int write(std::ostream& os, layer& layer);
+        static int write(std::ostream& os, Layer& layer);
 
         inline std::random_device rd;
     }
 }
 
-struct tsk::layers::layer {
-    layer(int dim_input, int dim_output);
-    int dim_input;
-    int dim_output;
+struct tsk::layers::Layer {
+    Layer(int dimInput, int dimOutput);
+    int dimInput;
+    int dimOutput;
 };
 
-struct tsk::layers::fuzzy_layer : public tsk::layers::layer {
+struct tsk::layers::FuzzyLayer : public tsk::layers::Layer {
     /**
      * first layer
      */
-    std::function<double(double,double,double,double)> fuzzy_function;
+    std::function<double(double,double,double,double)> fuzzyFunction;
 
     std::vector<double> sigma;
     std::vector<double> c;
     std::vector<double> b;
 
-    fuzzy_layer(int dim_input, int dim_output);
+    FuzzyLayer(int dimInput, int dimOutput);
 
     template <tsk::is_indexed T>
     std::vector<double> get(T&);
 };
 
-struct tsk::layers::multiple_layer : tsk::layers::layer {
+struct tsk::layers::MultipleLayer : tsk::layers::Layer {
     /**
      * third layer
      */
     boost::multi_array<double, 2> p;
     
-    multiple_layer(int dim_input, int dim_output, int N);
+    MultipleLayer(int dimInput, int dimOutput, int N);
 
     template <tsk::is_indexed T, tsk::is_indexed Y>
     std::vector<double> get(T&, Y&);
 };
 
-struct tsk::layers::role_multiple_layer : tsk::layers::layer {
+struct tsk::layers::RoleMultipleLayer : tsk::layers::Layer {
     /**
      * second layer
      */
-    role_multiple_layer(int dim_input, int dim_output);
+    RoleMultipleLayer(int dimInput, int dimOutput);
 
     template <tsk::is_indexed T>
     std::vector<double> get(T&);
 };
 
-struct tsk::layers::sum_layer : tsk::layers::layer {
+struct tsk::layers::SumLayer : tsk::layers::Layer {
     /**
      * fourth layer
      */
-    sum_layer(int dim_input, int dim_output);
+    SumLayer(int dimInput, int dimOutput);
 
     template <tsk::is_indexed T, tsk::is_indexed Y>
     double get(T&, Y&);
 };
 
 template <tsk::is_indexed T>
-std::vector<double> tsk::layers::fuzzy_layer::get(T& x) {
-    if(x.size() != dim_input)
+std::vector<double> tsk::layers::FuzzyLayer::get(T& x) {
+    if(x.size() != dimInput)
         throw std::runtime_error("the size of the input vector is not equal to the dimension of the fuzzification layer");
-    std::vector<double> y(dim_output);
+    std::vector<double> y(dimOutput);
     
-    int M = dim_output / dim_input;
-    for(int i = 0; i < dim_input; i++) {
+    int M = dimOutput / dimInput;
+    for(int i = 0; i < dimInput; i++) {
         for(int j = 0; j < M; j++) {
             int k = i*M+j;
-            y[k] = fuzzy_function(x[i], sigma[k], c[k], b[k]);
+            y[k] = fuzzyFunction(x[i], sigma[k], c[k], b[k]);
         }
     }
     return std::move(y);
 }
 
 template <tsk::is_indexed T, tsk::is_indexed Y>
-std::vector<double> tsk::layers::multiple_layer::get(T& v, Y& x) {
-    if(v.size() != dim_input)
+std::vector<double> tsk::layers::MultipleLayer::get(T& v, Y& x) {
+    if(v.size() != dimInput)
         throw std::runtime_error("the size of the input vector is not equal to the dimension of the multiplication layer");
     
-    std::vector<double> y(dim_output);
-    int num_of_out = dim_output / dim_input;
-    int num_of_in = x.size();
-    for(int i = 0; i < dim_input; i++) {
-        for(int j = 0; j < num_of_out; j++) {
-            int l = i*num_of_out+j;
+    std::vector<double> y(dimOutput);
+    int numOfOut = dimOutput / dimInput;
+    int numOfIn = x.size();
+    for(int i = 0; i < dimInput; i++) {
+        for(int j = 0; j < numOfOut; j++) {
+            int l = i*numOfOut+j;
             double temp = p[l][0];
-            for(int k = 0; k < num_of_in; k++) {
+            for(int k = 0; k < numOfIn; k++) {
                 temp += p[l][k+1] * x[k];
             }
             temp *= v[i];
@@ -133,16 +134,16 @@ std::vector<double> tsk::layers::multiple_layer::get(T& v, Y& x) {
 }
 
 template <tsk::is_indexed T>
-std::vector<double> tsk::layers::role_multiple_layer::get(T& x) {
-    if(x.size() != dim_input)
+std::vector<double> tsk::layers::RoleMultipleLayer::get(T& x) {
+    if(x.size() != dimInput)
         throw std::runtime_error("the size of the input vector is not equal to the dimension of the multiplication layer");
     
-    std::vector<double> y(dim_output);
-    int N = dim_input / dim_output;
-    for(int i = 0; i < dim_output; i++) {
+    std::vector<double> y(dimOutput);
+    int N = dimInput / dimOutput;
+    for(int i = 0; i < dimOutput; i++) {
         y[i] = 1;
         for(int j = 0; j < N; j++) {
-            int k = i+j*dim_output;
+            int k = i+j*dimOutput;
             y[i] *= x[k];
         }
     }
@@ -151,7 +152,7 @@ std::vector<double> tsk::layers::role_multiple_layer::get(T& x) {
 }
 
 template <tsk::is_indexed T, tsk::is_indexed Y>
-double tsk::layers::sum_layer::get(T& x, Y& v) {
+double tsk::layers::SumLayer::get(T& x, Y& v) {
     /**
      * x - выход предыдущего слоя
      * v - выход слоя role_multiple

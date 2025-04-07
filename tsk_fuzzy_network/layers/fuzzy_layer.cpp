@@ -5,7 +5,8 @@
 #include <execution>
 
 double tsk::layers::generalGaussian(double x, double sigma, double c, double b) {
-    return 1 / (1 + pow( (x-c)/sigma, 2*b));
+    double value = 1.0 / (1.0 + std::pow( (x-c)/sigma, 2*(int)b));
+    return value;
 };
 
 tsk::layers::FuzzyLayer::FuzzyLayer(int dimInput, int dimOutput) :
@@ -16,8 +17,8 @@ tsk::layers::FuzzyLayer::FuzzyLayer(int dimInput, int dimOutput) :
     b(std::vector<double>(dimOutput))
 {
     std::mt19937 gen(rd());
-    std::uniform_real_distribution<> disSigma(0.1, 1);
-    std::uniform_real_distribution<> disC(0.1, 1);
+    std::uniform_real_distribution<> disSigma(0, 10);
+    std::uniform_real_distribution<> disC(0, 10);
     std::uniform_real_distribution<> disB(1, 5);
 
     std::generate(std::execution::par, sigma.begin(), sigma.end(), [&]() { return disSigma(gen); });

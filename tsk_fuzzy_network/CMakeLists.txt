@@ -20,6 +20,7 @@ set(LAYERS_SOURCE_FILES
     layers/role_multiple_layer.cpp
     layers/sum_layer.cpp
     tsk.cpp)
+    
 set(INCLUDE_DIRECTORY ../include)
 
 add_library(TSK SHARED ${LAYERS_SOURCE_FILES} ${LEARNING_SOURCE_FILES})

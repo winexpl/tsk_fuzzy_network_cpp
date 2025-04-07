@@ -2,10 +2,11 @@
 #define DATASET
 
 #include <boost/multi_array.hpp>
+#include <utility>
 
 struct Dataset
 {
-    Dataset(boost::multi_array<double, 2> x, std::vector<double> d);
+    Dataset(boost::multi_array<double, 2> x, std::vector<double> d, int classesCount);
 
     std::vector<double>& getD() {
         return d;
@@ -15,9 +16,14 @@ struct Dataset
         return x;
     }
 
-    int getCountXVectors() {
+    int getCountVectors() {
         return x.shape()[0];
     }
+
+    void shuffle();
+
+    std::pair<Dataset, Dataset> splitDatasetOnTrainAndTest(double separationCoefficient);
+    int classesCount;
 
 private:
     boost::multi_array<double, 2> x;

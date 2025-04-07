@@ -108,7 +108,7 @@ std::vector<double> tsk::layers::FuzzyLayer::get(T& x) {
             y[k] = fuzzyFunction(x[i], sigma[k], c[k], b[k]);
         }
     }
-    return std::move(y);
+    return y;
 }
 
 template <tsk::is_indexed T, tsk::is_indexed Y>

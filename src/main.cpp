@@ -5,6 +5,7 @@
 #include "dataset.h"
 #include "out.h"
 #include "metric.h"
+#include "tsk_fuzzy_network/c_means.h"
 
 std::ostream& operator<<(std::ostream& os, std::vector<double>& x) {
     for(int i = 0; i < x.size(); i++) {
@@ -29,29 +30,51 @@ std::ostream& operator<<(std::ostream& os, boost::multi_array<double,2>& x)
 }
 
 int main(int argc, char* argv[]) {
+    int m = 4;
     std::string filename = "resource/new-irises.csv";
     Dataset dataset = readDataset(filename);
     dataset.shuffle();
     std::pair<Dataset, Dataset> datasetPair = dataset.splitDatasetOnTrainAndTest(0.8);
-    tsk::TSK tsk(dataset.getX().shape()[1], 10);
+
+    tsk::CMeans cmeans(m, 0, 0.0001);
+    cmeans.fit(datasetPair.first.getX());
+    std::vector<double> c = cmeans.getCentroids();
+    std::vector<double> sigma = cmeans.getSigma();
+
+    std::cout << sigma;
+    std::cout << c;
+
+    tsk::TSK tsk(dataset.getX().shape()[1], m);
+    tsk.setC(c);
+    tsk.setSigma(sigma);
     std::shared_ptr<tsk::TSK> tsk_shptr = std::make_shared<tsk::TSK>(tsk);
     learning::HybridAlgorithm hybridAlg(tsk_shptr, datasetPair.first);
-
     std::string input;
 
-    do {
-        // Ваша основная логика
-        hybridAlg.learning(dataset.getCountVectors(), 1, 10, 0.005);
 
+    do {
+        hybridAlg.learning(datasetPair.first.getCountVectors(), 1, 100, 0.01);
+        // std::cout << tsk_shptr->getP();
+        // std::cout << tsk_shptr->getSigma();
+        // std::cout << tsk_shptr->getC();
+        // std::cout << tsk_shptr->getB();
+
+        auto predict = tsk_shptr->predict(datasetPair.second.getX());
+        std::cout << "accuracy: " << metric::Metric::calculateAccuracy(datasetPair.second.getD(), predict, dataset.classesCount) << std::endl
+            << "mse: " << metric::Metric::calculateMSE(datasetPair.second.getD(), predict, dataset.classesCount) << std::endl;
         std::cout << "Нажмите Enter для продолжения (или введите что-то для выхода): ";
         std::getline(std::cin, input);
-    } while (input.empty()); // Продолжаем, пока строка пуста (Enter)
+    } while (input.empty());
 
     auto p = tsk_shptr->getP();
-    auto predict = tsk_shptr->predict(dataset.getX());
-    std::cout << "accuracy: " << metric::Metric::calculateAccuracy(dataset.getD(), predict, dataset.classesCount) << std::endl
-                << "mse: " << metric::Metric::calculateMSE(dataset.getD(), predict, dataset.classesCount) << std::endl;
-    std::cout << predict;
+    auto predict = tsk_shptr->predict(datasetPair.second.getX());
+    for(int i = 0; i < predict.size(); i++) {
+        std::cout << "predict[" << i << "] = " << predict[i] << " "
+                    << "y[" << i << "] = " << datasetPair.second.getD()[i] << "\t"
+                    << predict[i]/dataset.getD()[i] << "\n";
+    }
+    std::cout << "accuracy: " << metric::Metric::calculateAccuracy(datasetPair.second.getD(), predict, dataset.classesCount) << std::endl
+    << "mse: " << metric::Metric::calculateMSE(datasetPair.second.getD(), predict, dataset.classesCount) << std::endl;
     return 0;
 }
 

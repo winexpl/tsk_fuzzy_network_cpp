@@ -36,10 +36,6 @@ private:
     int deltaKronecker(int i, int j);
 
     Eigen::MatrixXd inverse(Eigen::MatrixXd&);
-
-    std::vector<double> oldC;
-    std::vector<double> oldSigma;
-    std::vector<double> oldB;
 };
 
 #endif

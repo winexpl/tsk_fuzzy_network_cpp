@@ -11,7 +11,8 @@ endif()
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g")
 
 set(LEARNING_SOURCE_FILES
-    learning/hybrid_algorithm.cpp)
+    learning/hybrid_algorithm.cpp
+    learning/c_means.cpp)
 
 set(LAYERS_SOURCE_FILES
     layers/layer.cpp

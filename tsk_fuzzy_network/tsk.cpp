@@ -27,11 +27,15 @@ void tsk::TSK::updateP(Eigen::MatrixXd &p)
     auto oldPShape = oldP.shape();
     boost::multi_array<double, 2> newP(boost::extents[oldPShape[0]][oldPShape[1]]);
     for (int i = 0; i < oldPShape[0]*oldPShape[1]; ++i) {
-        // if(p(i,0) > 100000) p(i,0) = 100000;
-        if(std::isnan(p(i,0))) p(i,0)=oldP[i/(oldPShape[1])][i%(oldPShape[1])];
-        
+        // if(std::isnan(p(i,0))) p(i,0)=oldP[i/(oldPShape[1])][i%(oldPShape[1])];
+        // else std::cout << "pizdec!";
+        // if(p(i,0) > 1) p(i,0)=1;
+        // else if(p(i,0) < 0) p(i,0)=0;
+
         newP[i/(oldPShape[1])][i%(oldPShape[1])] = p(i,0);
+        // std::cout << p(i,0) << " ";
     }
+    std::cout << std::endl;
 
     _multipleLayer.p = newP;
 }

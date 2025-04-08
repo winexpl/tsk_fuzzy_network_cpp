@@ -30,15 +30,16 @@ Eigen::MatrixXd vectorToEigenMatrix(const std::vector<double>& vec)
 
 void learning::HybridAlgorithm::learning(int batchSize, int epochCount, int countSecondStepIter, double nu)
 {
-
+    int m = tsk->getM();
+    int n = tsk->getN();
     int countOfLearningVectors = dataset.getCountVectors();
     
     for(int i = 0; i < epochCount; ++i)
     {
-        for(int startIndex = 0; startIndex < 1; startIndex += batchSize)
+        for(int startIndex = 0; startIndex < countOfLearningVectors; startIndex += batchSize)
         {
             int endIndex = startIndex + batchSize;
-            if(endIndex > countOfLearningVectors) endIndex = countOfLearningVectors - 1;
+            if(endIndex > countOfLearningVectors) endIndex = countOfLearningVectors;
             this->learningTskBatchFirstStep(startIndex, endIndex);
             std::vector<double> predictedValues = tsk->predict(dataset.getX());
             std::cout << ".";
@@ -110,72 +111,61 @@ void learning::HybridAlgorithm::learningTskBatchSecondStep(int startIndex, int e
     double nuC = nu;
     double nuSigma = nu;
     double nuB = nu;
+
+    auto vectors = dataset.getX();
+
     for(int i = startIndex; i < endIndex; i++)
     {
-        std::vector<double> oldC = tsk->getC();
-        std::vector<double> oldSigma = tsk->getSigma();
-        std::vector<double> oldB = tsk->getB();
-        // this->oldC=oldC;
-        // this->oldB=oldB;
-        // this->oldSigma=oldSigma;
-        std::vector<double> newC(oldC);
-        std::vector<double> newSigma(oldSigma);
-        std::vector<double> newB(oldB);
-
+        auto currentTrainVector = vectors[i];
+        double d = dataset.getD()[i];
 
         for(int paramNum = 0; paramNum < n*m; ++paramNum)
         {
-            oldC = tsk->getC();
-            oldSigma = tsk->getSigma();
-            oldB = tsk->getB();
-            double d = dataset.getD()[i];
-            auto currentTrainVector = dataset.getX()[i];
-            double out = tsk->predict1(currentTrainVector);
+            const double out = tsk->predict1(currentTrainVector);
             double e = (out - d);
 
-            newC[paramNum] = oldC[paramNum];
-            newSigma[paramNum] = oldSigma[paramNum];
-            newB[paramNum] = oldB[paramNum];
+            double newC = tsk->getC()[paramNum];
+            double newSigma = tsk->getSigma()[paramNum];
+            double newB = tsk->getB()[paramNum];
 
             double dEdC = dE(e, p, currentTrainVector, paramNum,
             [](double x, double sigma, double c, double b) -> double {
-                double dnu = 2.0*b/sigma * std::pow( (x-c)/sigma, 2*(int)b-1.0);
-                dnu /= std::pow( 1 + std::pow( (x-c)/sigma, 2*(int)b ), 2);
+                double dnu = 2.0*b/sigma * std::pow( (x-c)/sigma, 2*b-1.0);
+                dnu /= std::pow( 1 + std::pow( (x-c)/sigma, 2*b ), 2);
                 return dnu;
             });
 
             double dEdSigma = dE(e, p, currentTrainVector, paramNum,
             [](double x, double sigma, double c, double b) -> double {
-                double dnu = 2.0*b/sigma * std::pow( (x-c)/sigma, 2.0*(int)b);
-                dnu /= std::pow( 1.0+std::pow( (x-c)/sigma, 2*(int)b ), 2);
+                double dnu = 2.0*b/sigma * std::pow( (x-c)/sigma, 2.0*b);
+                dnu /= std::pow( 1.0+std::pow( (x-c)/sigma, 2*b ), 2);
                 return dnu;
             });
 
             double dEdB = dE(e, p, currentTrainVector, paramNum,
             [](double x, double sigma, double c, double b) -> double {
                 // FIXME potentially error in the std::log()!
-                double dnu = -2.0 * std::pow( (x-c)/sigma, 2.0*(int)b ) * std::log( (x-c)/sigma );
-                dnu /= std::pow( 1.0+std::pow( (x-c)/sigma, 2.0*(int)b ), 2);
+                double dnu = -2.0 * std::pow( (x-c)/sigma, 2.0*b ) * std::log( std::abs((x-c)/sigma) );
+                dnu /= std::pow( 1.0+std::pow( (x-c)/sigma, 2.0*b ), 2);
                 return dnu;
             });
             
-            if( !std::isnan(dEdB) && !std::isinf(dEdB)) newB[paramNum] -= nuB * dEdB;
-            if( !std::isnan(dEdC) && !std::isinf(dEdC)) newC[paramNum] -= nuC * dEdC;
-            if( !std::isnan(dEdSigma) && !std::isinf(dEdSigma)) newSigma[paramNum] -= nuSigma * dEdSigma;
-            // tsk->setSigma(newSigma);
-            // tsk->setC(newC);
-            // tsk->setB(newB);
+            if( !std::isnan(dEdB) && !std::isinf(dEdB)) newB -= nuB * dEdB;
+            // else std::cout << "dEdB is NaN or Inf, skipping update for B" << std::endl;
+            if( !std::isnan(dEdC) && !std::isinf(dEdC)) newC -= nuC * dEdC;
+            // else std::cout << "dEdC is NaN or Inf, skipping update for C" << std::endl;
+            if( !std::isnan(dEdSigma) && !std::isinf(dEdSigma)) newSigma -= nuSigma * dEdSigma;
+            // else std::cout << "dEdSigma is NaN or Inf, skipping update for Sigma" << std::endl;
 
-            tsk->setSigma(newSigma[paramNum], paramNum);
-            tsk->setC(newC[paramNum], paramNum);
-            tsk->setB(newB[paramNum], paramNum);
+            tsk->setSigma(newSigma, paramNum);
+            tsk->setC(newC, paramNum);
+            tsk->setB(std::round(newB), paramNum);
 
-            // if(newC > 100000) newC = oldC[paramNum];
-            // if(newSigma > 100000) newSigma = oldSigma[paramNum];
-            // if(newB > 100000) newB = oldB[paramNum];
-            // std::cout << dEdC << "-" << newC[paramNum] << " " << dEdSigma << "-" << newSigma[paramNum] << " " << dEdB << "-" << newB[paramNum] << " | ";
+            // std::cout << tsk->getC()[paramNum] << "/" << dEdC << "/" << newC << " | "
+            // << tsk->getSigma()[paramNum] << "/" << dEdSigma << "/" << newSigma << " | "
+            // << tsk->getB()[paramNum] << "/"<< dEdB << "/" << newB << " ||| ";
         }
-
+        // std::cout << std::endl;
     }
 }
 
@@ -197,9 +187,9 @@ double learning::HybridAlgorithm::dE(double e, const  boost::multi_array<double,
         }
         double dw = dW(paramNum, roleNum, x, dnuFunction);
         temp *= dw;
+        // if(temp > 100) std::cout << dw << " " << temp << std::endl;
         sum_p += temp;
     }
-
     return e * sum_p;
 }
 
@@ -215,40 +205,52 @@ double learning::HybridAlgorithm::dW(int paramNum, int roleNum, auto x, std::fun
     int paramRoleNum = paramNum % countOfRole; // i for changedParam
     int paramVectorIndexNum = paramNum / countOfRole; // j for changedParam
 
-    double res = deltaKronecker(roleNum, paramRoleNum);
 
     double m_res = m(x);
-    res *= m_res;
     double l_res = l(x, paramRoleNum);
-    res -= l_res;
-    res /= std::pow(m_res, 2);
-    auto c = tsk->getC();
-    auto b = tsk->getB();
-    auto sigma = tsk->getSigma();
+
+
+    double res =  (deltaKronecker(roleNum, paramRoleNum) * m_res - l_res) / std::pow(m_res, 2);
 
     double multiple = 1;
-    
-    for (int l = paramRoleNum; l < countOfRole * vectorLength; l+=countOfRole) {
-        if(paramVectorIndexNum != (l-paramRoleNum)/countOfRole) multiple *= tsk->applyFuzzyFunction(x[paramVectorIndexNum], sigma[l], c[l], b[l]);
+    for(int j = 0; j < vectorLength; ++j)
+    {
+        if(paramVectorIndexNum != j)
+            multiple *= tsk->applyFuzzyFunction(x[j], tsk->getSigma()[j*countOfRole+paramRoleNum], tsk->getC()[j*countOfRole+paramRoleNum], tsk->getB()[j*countOfRole+paramRoleNum]);
     }
     res *= multiple;
-    res *= dnuFunction(x[paramVectorIndexNum], sigma[paramNum], c[paramNum], b[paramNum]);
+    double dnu = dnuFunction(x[paramVectorIndexNum], tsk->getSigma()[paramNum], tsk->getC()[paramNum], tsk->getB()[paramNum]);
+    res *= dnu;
     return res;
 }
 
 
 double learning::HybridAlgorithm::m(auto x) {
-    auto w = tsk->getRoleMultipleLayerOut(x);
+
+    double m = tsk->getM();
+    double n = tsk->getN();
     double res = 0;
-    for (int i = 0; i < w.size(); i++) {
-        res += w[i];
+    for(int i = 0; i < m; ++i)
+    {
+        double temp = 1.0;
+        for(int j = 0; j < n; ++j)
+        {
+            temp *= tsk->applyFuzzyFunction(x[j], tsk->getSigma()[j*m+i], tsk->getC()[j*m+i], tsk->getB()[j*m+i]);
+        }
+        res += temp;
     }
     return res;
 }
 
 double learning::HybridAlgorithm::l(auto x, int i) {
-    auto w = tsk->getRoleMultipleLayerOut(x);
-    return w[i];
+    double m = tsk->getM();
+    double n = tsk->getN();
+    double temp = 1.0;
+    for(int j = 0; j < n; ++j)
+    {
+        temp *= tsk->applyFuzzyFunction(x[j], tsk->getSigma()[j*m+i], tsk->getC()[j*m+i], tsk->getB()[j*m+i]);
+    }
+    return temp;
 }
 
 int learning::HybridAlgorithm::deltaKronecker(int i, int j) {

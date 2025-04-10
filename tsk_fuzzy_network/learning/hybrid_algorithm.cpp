@@ -42,9 +42,8 @@ void learning::HybridAlgorithm::learning(int batchSize, int epochCount, int coun
             if(endIndex > countOfLearningVectors) endIndex = countOfLearningVectors;
             this->learningTskBatchFirstStep(startIndex, endIndex);
             std::vector<double> predictedValues = tsk->predict(dataset.getX());
-            std::cout << ".";
-            std::cout << std::endl << "epoch " << i << "after first step "
-                << "accuracy: " << metric::Metric::calculateAccuracy(dataset.getD(), predictedValues, dataset.classesCount) << std::endl
+            std::cout << std::endl << "epoch " << i+1 << " after first step "
+                << "accuracy: " << metric::Metric::calculateAccuracy(dataset.getD(), predictedValues, dataset.classesCount) << " "
                 << "mse: " << metric::Metric::calculateMSE(dataset.getD(), predictedValues, dataset.classesCount) << std::endl;
             for(int j = 0; j < countSecondStepIter; ++j)
             {
@@ -53,8 +52,8 @@ void learning::HybridAlgorithm::learning(int batchSize, int epochCount, int coun
             predictedValues = tsk->predict(dataset.getX());
             double accuracy = metric::Metric::calculateAccuracy(dataset.getD(), predictedValues, dataset.classesCount);
             double mse = metric::Metric::calculateMSE(dataset.getD(), predictedValues, dataset.classesCount);
-            std::cout << std::endl << "epoch " << i << "after second step "
-                << "accuracy: " << accuracy << std::endl
+            std::cout << std::endl << "epoch " << i+1 << " after second step "
+                << "accuracy: " << accuracy << " "
                 << "mse: " << mse << std::endl;
             if(std::isnan(mse)) tsk->clearFuzzyLayer();
         }
@@ -160,12 +159,7 @@ void learning::HybridAlgorithm::learningTskBatchSecondStep(int startIndex, int e
             tsk->setSigma(newSigma, paramNum);
             tsk->setC(newC, paramNum);
             tsk->setB(std::round(newB), paramNum);
-
-            // std::cout << tsk->getC()[paramNum] << "/" << dEdC << "/" << newC << " | "
-            // << tsk->getSigma()[paramNum] << "/" << dEdSigma << "/" << newSigma << " | "
-            // << tsk->getB()[paramNum] << "/"<< dEdB << "/" << newB << " ||| ";
         }
-        // std::cout << std::endl;
     }
 }
 
@@ -187,7 +181,6 @@ double learning::HybridAlgorithm::dE(double e, const  boost::multi_array<double,
         }
         double dw = dW(paramNum, roleNum, x, dnuFunction);
         temp *= dw;
-        // if(temp > 100) std::cout << dw << " " << temp << std::endl;
         sum_p += temp;
     }
     return e * sum_p;
@@ -207,7 +200,7 @@ double learning::HybridAlgorithm::dW(int paramNum, int roleNum, auto x, std::fun
 
 
     double m_res = m(x);
-    double l_res = l(x, paramRoleNum);
+    double l_res = l(x, roleNum);
 
 
     double res =  (deltaKronecker(roleNum, paramRoleNum) * m_res - l_res) / std::pow(m_res, 2);

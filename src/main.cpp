@@ -31,7 +31,7 @@ std::ostream& operator<<(std::ostream& os, boost::multi_array<double,2>& x)
 
 int main(int argc, char* argv[]) {
     int m = 4;
-    std::string filename = "resource/new-irises.csv";
+    std::string filename = "resource/new-magic-gamma-telescope.csv";
     Dataset dataset = readDataset(filename);
     dataset.shuffle();
     std::pair<Dataset, Dataset> datasetPair = dataset.splitDatasetOnTrainAndTest(0.8);
@@ -51,15 +51,10 @@ int main(int argc, char* argv[]) {
     learning::HybridAlgorithm hybridAlg(tsk_shptr, datasetPair.first);
     std::string input;
 
-
     do {
-        hybridAlg.learning(datasetPair.first.getCountVectors(), 1, 100, 0.01);
-        // std::cout << tsk_shptr->getP();
-        // std::cout << tsk_shptr->getSigma();
-        // std::cout << tsk_shptr->getC();
-        // std::cout << tsk_shptr->getB();
-
+        hybridAlg.learning(datasetPair.first.getCountVectors(), 4, 10, 0.001);
         auto predict = tsk_shptr->predict(datasetPair.second.getX());
+        
         std::cout << "accuracy: " << metric::Metric::calculateAccuracy(datasetPair.second.getD(), predict, dataset.classesCount) << std::endl
             << "mse: " << metric::Metric::calculateMSE(datasetPair.second.getD(), predict, dataset.classesCount) << std::endl;
         std::cout << "Нажмите Enter для продолжения (или введите что-то для выхода): ";

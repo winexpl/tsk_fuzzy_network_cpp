@@ -24,11 +24,12 @@ set(LAYERS_SOURCE_FILES
     
 set(INCLUDE_DIRECTORY ../include)
 
-add_library(TSK SHARED ${LAYERS_SOURCE_FILES} ${LEARNING_SOURCE_FILES})
+add_library(TSK SHARED ${LAYERS_SOURCE_FILES} ${LEARNING_SOURCE_FILES} dataset.cpp logger.cpp api.cpp)
 
 target_include_directories(TSK
     PUBLIC
         ${INCLUDE_DIRECTORY}
 )
 
-
+find_package(Boost REQUIRED COMPONENTS log log_setup system thread)
+target_link_libraries(TSK PRIVATE Boost::log Boost::log_setup Boost::system Boost::thread)

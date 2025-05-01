@@ -12,10 +12,11 @@ namespace learning
 struct learning::HybridAlgorithm
 {
     int batchSize;
-    std::shared_ptr<tsk::TSK> tsk;
+    tsk::TSK* tsk;
     Dataset dataset;
 
-    HybridAlgorithm(std::shared_ptr<tsk::TSK> tsk, Dataset &dataset);
+    HybridAlgorithm(tsk::TSK* tsk, Dataset &dataset);
+    
     void learning(int batchSize, int epochCount, int countSecondStepIter=100, double nu=0.01);
 private:
     Eigen::MatrixXd _d;

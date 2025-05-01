@@ -40,28 +40,36 @@ void learning::HybridAlgorithm::learning(int batchSize, int epochCount, int coun
         {
             int endIndex = startIndex + batchSize;
             if(endIndex > countOfLearningVectors) endIndex = countOfLearningVectors;
+
             this->learningTskBatchFirstStep(startIndex, endIndex);
+
             std::vector<double> predictedValues = tsk->predict(dataset.getX());
+
+            double accuracy = metric::Metric::calculateAccuracy(dataset.getD(), predictedValues, dataset.getClassCount());
+            double mse = metric::Metric::calculateMSE(dataset.getD(), predictedValues, dataset.getClassCount());
             std::cout << std::endl << "epoch " << i+1 << " after first step "
-                << "accuracy: " << metric::Metric::calculateAccuracy(dataset.getD(), predictedValues, dataset.classesCount) << " "
-                << "mse: " << metric::Metric::calculateMSE(dataset.getD(), predictedValues, dataset.classesCount) << std::endl;
+                << "accuracy: " << accuracy << " "
+                << "mse: " << mse << std::endl;
+            
+            // многократное повторение 2 этапа
             for(int j = 0; j < countSecondStepIter; ++j)
             {
                 this->learningTskBatchSecondStep(startIndex, endIndex, nu);
             }
+
             predictedValues = tsk->predict(dataset.getX());
-            double accuracy = metric::Metric::calculateAccuracy(dataset.getD(), predictedValues, dataset.classesCount);
-            double mse = metric::Metric::calculateMSE(dataset.getD(), predictedValues, dataset.classesCount);
+            accuracy = metric::Metric::calculateAccuracy(dataset.getD(), predictedValues, dataset.getClassCount());
+            mse = metric::Metric::calculateMSE(dataset.getD(), predictedValues, dataset.getClassCount());
             std::cout << std::endl << "epoch " << i+1 << " after second step "
                 << "accuracy: " << accuracy << " "
                 << "mse: " << mse << std::endl;
+            // сброс если есть nan
             if(std::isnan(mse)) tsk->clearFuzzyLayer();
         }
     }
-
 }
 
-learning::HybridAlgorithm::HybridAlgorithm(std::shared_ptr<tsk::TSK> tsk, Dataset &dataset) :
+learning::HybridAlgorithm::HybridAlgorithm(tsk::TSK* tsk, Dataset &dataset) :
 tsk{tsk}, dataset{dataset}
 {
     _d = vectorToEigenMatrix(dataset.getD());
@@ -80,7 +88,6 @@ void learning::HybridAlgorithm::learningTskBatchFirstStep(int startIndex, int en
     {
         auto xi = x[startIndex + i];
         auto w = tsk->getRoleMultipleLayerOut(xi);
-        // double wSum = std::accumulate(w.cbegin(), w.cend(), 0.0);
         double wSum = 0.0;
         for(int k = 0; k < m; ++k)
         {
@@ -150,11 +157,8 @@ void learning::HybridAlgorithm::learningTskBatchSecondStep(int startIndex, int e
             });
             
             if( !std::isnan(dEdB) && !std::isinf(dEdB)) newB -= nuB * dEdB;
-            // else std::cout << "dEdB is NaN or Inf, skipping update for B" << std::endl;
             if( !std::isnan(dEdC) && !std::isinf(dEdC)) newC -= nuC * dEdC;
-            // else std::cout << "dEdC is NaN or Inf, skipping update for C" << std::endl;
             if( !std::isnan(dEdSigma) && !std::isinf(dEdSigma)) newSigma -= nuSigma * dEdSigma;
-            // else std::cout << "dEdSigma is NaN or Inf, skipping update for Sigma" << std::endl;
 
             tsk->setSigma(newSigma, paramNum);
             tsk->setC(newC, paramNum);
@@ -191,13 +195,13 @@ double learning::HybridAlgorithm::dW(int paramNum, int roleNum, auto x, std::fun
     /**
      * paramNum - [cij] (=i*j) i-правило, j-параметр входного вектора
      * roleNum - [wk] (=k)
+     * dnuFuction - производная для параметра (c, b, sigma) ф. Гаусса
      */
     int vectorLength = tsk->getN(); // n
     int countOfRole = tsk->getM(); // m
 
-    int paramRoleNum = paramNum % countOfRole; // i for changedParam
-    int paramVectorIndexNum = paramNum / countOfRole; // j for changedParam
-
+    int paramRoleNum = paramNum % countOfRole; // i for changed param
+    int paramVectorIndexNum = paramNum / countOfRole; // j for changed param
 
     double m_res = m(x);
     double l_res = l(x, roleNum);
@@ -219,7 +223,6 @@ double learning::HybridAlgorithm::dW(int paramNum, int roleNum, auto x, std::fun
 
 
 double learning::HybridAlgorithm::m(auto x) {
-
     double m = tsk->getM();
     double n = tsk->getN();
     double res = 0;

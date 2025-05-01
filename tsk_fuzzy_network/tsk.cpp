@@ -1,6 +1,8 @@
 #include "tsk_fuzzy_network/layers.h"
 #include "tsk_fuzzy_network/tsk.h"
 #include "metric.h"
+#include "logger.h"
+#include <sstream>
 
 tsk::TSK::TSK(int n, int m, int out)
     : _fuzzyLayer{tsk::layers::FuzzyLayer(n, m*n)},
@@ -9,11 +11,14 @@ tsk::TSK::TSK(int n, int m, int out)
     _sumLayer{tsk::layers::SumLayer(m*out, out)},
     _n{n}, _m{m}, _out{out}
 {
-    std::cout << "Модель создана." << "\n"
-        << "_fuzzyLayer in=" << n << " out=" << m*n << "\n"
-        << "_roleMultipleLayer in=" << m*n << " out=" << m << "\n"
-        << "_multipleLayer in=" << m << " out=" << m*out << "\n"
-        << "_sumLayer in=" << m*out << " out=" << out << std::endl;
+    std::ostringstream logStream;
+    logStream << "Модель создана.\n"
+            << "_fuzzyLayer in=" << n << " out=" << m * n << "\n"
+            << "_roleMultipleLayer in=" << m * n << " out=" << m << "\n"
+            << "_multipleLayer in=" << m << " out=" << m * out << "\n"
+            << "_sumLayer in=" << m * out << " out=" << out;
+
+    Logger::getInstance().logInfo(logStream.str());
 }
 
 double tsk::TSK::applyFuzzyFunction(double x, double sigma, double c, double b)
@@ -27,13 +32,7 @@ void tsk::TSK::updateP(Eigen::MatrixXd &p)
     auto oldPShape = oldP.shape();
     boost::multi_array<double, 2> newP(boost::extents[oldPShape[0]][oldPShape[1]]);
     for (int i = 0; i < oldPShape[0]*oldPShape[1]; ++i) {
-        // if(std::isnan(p(i,0))) p(i,0)=oldP[i/(oldPShape[1])][i%(oldPShape[1])];
-        // else std::cout << "pizdec!";
-        // if(p(i,0) > 1) p(i,0)=1;
-        // else if(p(i,0) < 0) p(i,0)=0;
-
         newP[i/(oldPShape[1])][i%(oldPShape[1])] = p(i,0);
-        // std::cout << p(i,0) << " ";
     }
     std::cout << std::endl;
 

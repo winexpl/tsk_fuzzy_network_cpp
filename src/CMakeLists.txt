@@ -9,7 +9,7 @@ set(INCLUDE_DIRECTORY ${CMAKE_HOME_DIRECTORY}/../include)
 
 set(TSK_LIB_PATH ${CMAKE_HOME_DIRECTORY}/../lib/libTSK.so)
 
-add_executable(main main.cpp csv_reader.cpp)
+add_executable(main main.cpp)
 
 target_include_directories(main
         PUBLIC

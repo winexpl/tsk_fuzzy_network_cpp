@@ -30,11 +30,16 @@ void Logger::logError(const std::string& message) {
     BOOST_LOG_TRIVIAL(error) << message;
 }
 
+void Logger::logDebug(const std::string& message) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    BOOST_LOG_TRIVIAL(debug) << message;
+}
+
 Logger::Logger()
 {
-    boost::log::add_file_log("tsk.log");
+    // boost::log::add_file_log("tsk.log");
     boost::log::add_console_log(std::cout, boost::log::keywords::format = "%Time% [%Severity%]: %Message%");
-    boost::log::add_common_attributes();
+    // boost::log::add_common_attributes();
 }
 
 Logger::~Logger()

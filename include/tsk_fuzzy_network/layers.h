@@ -7,7 +7,10 @@
 #include <cmath>
 #include <random>
 #include <utility>
-#include "boost/multi_array.hpp"
+#include <boost/multi_array.hpp>
+#include <boost/serialization/vector.hpp>
+#include <boost/serialization/access.hpp>
+#include "logger.h"
 
 
 namespace tsk {
@@ -45,6 +48,8 @@ struct tsk::layers::Layer {
     Layer(int dimInput, int dimOutput);
     int dimInput;
     int dimOutput;
+
+    Layer() {}
 };
 
 struct tsk::layers::FuzzyLayer : public tsk::layers::Layer {
@@ -58,9 +63,23 @@ struct tsk::layers::FuzzyLayer : public tsk::layers::Layer {
     std::vector<double> b;
 
     FuzzyLayer(int dimInput, int dimOutput);
-
+    FuzzyLayer() {}
     template <tsk::is_indexed T>
-    std::vector<double> get(T&);
+    std::vector<double> get(T&) const;
+
+    friend class boost::serialization::access;
+    template<class Archive>
+    void serialize(Archive& ar, const unsigned int version) {
+        ar & dimInput;
+        ar & dimOutput;
+        ar & sigma;
+        ar & c;
+        ar & b;
+        if(Archive::is_loading::value)
+        {
+            fuzzyFunction=generalGaussian;
+        }
+    }
 };
 
 struct tsk::layers::MultipleLayer : tsk::layers::Layer {
@@ -70,9 +89,40 @@ struct tsk::layers::MultipleLayer : tsk::layers::Layer {
     boost::multi_array<double, 2> p;
     
     MultipleLayer(int dimInput, int dimOutput, int N);
-
+    MultipleLayer() {}
     template <tsk::is_indexed T, tsk::is_indexed Y>
-    std::vector<double> get(T&, Y&);
+    std::vector<double> get(T&, Y&) const;
+
+    friend class boost::serialization::access;
+    template<class Archive>
+    void serialize(Archive& ar, const unsigned int version) {
+        ar & dimInput;
+        ar & dimOutput;
+        
+        int rows = p.shape()[0];
+        int cols = p.shape()[1];
+
+        ar & rows;
+        ar & cols;
+
+        std::vector<double> flatData(rows * cols);
+
+        if (Archive::is_saving::value) {
+            for (size_t i = 0; i < rows; ++i)
+                for (size_t j = 0; j < cols; ++j)
+                    flatData[i * cols + j] = p[i][j];
+        }
+
+        ar & flatData;
+
+        if (Archive::is_loading::value) {
+            p.resize(boost::extents[rows][cols]);
+            for (size_t i = 0; i < rows; ++i)
+                for (size_t j = 0; j < cols; ++j)
+                    p[i][j] = flatData[i * cols + j];
+        }
+
+    }
 };
 
 struct tsk::layers::RoleMultipleLayer : tsk::layers::Layer {
@@ -80,9 +130,16 @@ struct tsk::layers::RoleMultipleLayer : tsk::layers::Layer {
      * second layer
      */
     RoleMultipleLayer(int dimInput, int dimOutput);
-
+    RoleMultipleLayer() {}
     template <tsk::is_indexed T>
-    std::vector<double> get(T&);
+    std::vector<double> get(T&) const;
+
+    friend class boost::serialization::access;
+    template<class Archive>
+    void serialize(Archive& ar, const unsigned int version) {
+        ar & dimInput;
+        ar & dimOutput;
+    }
 };
 
 struct tsk::layers::SumLayer : tsk::layers::Layer {
@@ -90,13 +147,20 @@ struct tsk::layers::SumLayer : tsk::layers::Layer {
      * fourth layer
      */
     SumLayer(int dimInput, int dimOutput);
-
+    SumLayer() {}
     template <tsk::is_indexed T, tsk::is_indexed Y>
-    double get(T&, Y&);
+    double get(T&, Y&) const;
+
+    friend class boost::serialization::access;
+    template<class Archive>
+    void serialize(Archive& ar, const unsigned int version) {
+        ar & dimInput;
+        ar & dimOutput;
+    }
 };
 
 template <tsk::is_indexed T>
-std::vector<double> tsk::layers::FuzzyLayer::get(T& x) {
+std::vector<double> tsk::layers::FuzzyLayer::get(T& x) const {
     if(x.size() != dimInput)
         throw std::runtime_error("the size of the input vector is not equal to the dimension of the fuzzification layer");
     std::vector<double> y(dimOutput);
@@ -112,7 +176,7 @@ std::vector<double> tsk::layers::FuzzyLayer::get(T& x) {
 }
 
 template <tsk::is_indexed T, tsk::is_indexed Y>
-std::vector<double> tsk::layers::MultipleLayer::get(T& v, Y& x) {
+std::vector<double> tsk::layers::MultipleLayer::get(T& v, Y& x) const {
     if(v.size() != dimInput)
         throw std::runtime_error("the size of the input vector is not equal to the dimension of the multiplication layer");
     
@@ -134,7 +198,7 @@ std::vector<double> tsk::layers::MultipleLayer::get(T& v, Y& x) {
 }
 
 template <tsk::is_indexed T>
-std::vector<double> tsk::layers::RoleMultipleLayer::get(T& x) {
+std::vector<double> tsk::layers::RoleMultipleLayer::get(T& x) const {
     if(x.size() != dimInput)
         throw std::runtime_error("the size of the input vector is not equal to the dimension of the multiplication layer");
     
@@ -152,7 +216,7 @@ std::vector<double> tsk::layers::RoleMultipleLayer::get(T& x) {
 }
 
 template <tsk::is_indexed T, tsk::is_indexed Y>
-double tsk::layers::SumLayer::get(T& x, Y& v) {
+double tsk::layers::SumLayer::get(T& x, Y& v) const {
     /**
      * x - выход предыдущего слоя
      * v - выход слоя role_multiple

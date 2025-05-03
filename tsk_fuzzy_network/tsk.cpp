@@ -1,7 +1,6 @@
 #include "tsk_fuzzy_network/layers.h"
 #include "tsk_fuzzy_network/tsk.h"
 #include "metric.h"
-#include "logger.h"
 #include <sstream>
 
 tsk::TSK::TSK(int n, int m, int out)
@@ -13,10 +12,10 @@ tsk::TSK::TSK(int n, int m, int out)
 {
     std::ostringstream logStream;
     logStream << "Модель создана.\n"
-            << "_fuzzyLayer in=" << n << " out=" << m * n << "\n"
-            << "_roleMultipleLayer in=" << m * n << " out=" << m << "\n"
-            << "_multipleLayer in=" << m << " out=" << m * out << "\n"
-            << "_sumLayer in=" << m * out << " out=" << out;
+            << "\t_fuzzyLayer in=" << n << " out=" << m * n << "\n"
+            << "\t_roleMultipleLayer in=" << m * n << " out=" << m << "\n"
+            << "\t_multipleLayer in=" << m << " out=" << m * out << "\n"
+            << "\t_sumLayer in=" << m * out << " out=" << out;
 
     Logger::getInstance().logInfo(logStream.str());
 }
@@ -99,7 +98,7 @@ int tsk::TSK::getM()
     return _m;
 }
 
-std::vector<double> tsk::TSK::predict(boost::multi_array<double,2>& x)
+std::vector<double> tsk::TSK::predict(const boost::multi_array<double,2>& x) const
 {
     std::vector<double> predict;
     for(int i = 0; i < x.shape()[0]; i++) {
@@ -110,7 +109,7 @@ std::vector<double> tsk::TSK::predict(boost::multi_array<double,2>& x)
     return predict;
 }
 
-std::vector<double> tsk::TSK::evaluate(boost::multi_array<double,2>& x, std::vector<double>& y, int classesCount)
+std::vector<double> tsk::TSK::evaluate(const boost::multi_array<double,2>& x, const std::vector<double>& y, int classesCount) const
 {
     /**
      * x - входные векторы

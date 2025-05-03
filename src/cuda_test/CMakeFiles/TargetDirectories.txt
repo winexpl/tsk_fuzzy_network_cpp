@@ -1,0 +1,3 @@
+/mnt/masha/projects/tsk-fuzzy-network-cpp/src/cuda_test/CMakeFiles/test_cuda.dir
+/mnt/masha/projects/tsk-fuzzy-network-cpp/src/cuda_test/CMakeFiles/edit_cache.dir
+/mnt/masha/projects/tsk-fuzzy-network-cpp/src/cuda_test/CMakeFiles/rebuild_cache.dir

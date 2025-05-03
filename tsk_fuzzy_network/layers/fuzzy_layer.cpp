@@ -25,4 +25,3 @@ tsk::layers::FuzzyLayer::FuzzyLayer(int dimInput, int dimOutput) :
     std::generate(std::execution::par, c.begin(), c.end(), [&]() { return disC(gen); });
     std::generate(std::execution::par, b.begin(), b.end(), [&]() { return disB(gen); });
 }
-

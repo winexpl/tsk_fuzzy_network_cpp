@@ -1,0 +1,1 @@
+/usr/bin/c++ -g -g CMakeFiles/test_cuda.dir/test_cuda.cpp.o CMakeFiles/test_cuda.dir/test_cuda.cu.o CMakeFiles/test_cuda.dir/cmake_device_link.o -o test_cuda   -L/usr/lib/x86_64-linux-gnu/stubs  -L/usr/lib/gcc/x86_64-linux-gnu/12  -lcudadevrt -lcudart_static -lrt -lpthread -ldl 

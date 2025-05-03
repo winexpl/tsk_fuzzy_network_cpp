@@ -12,15 +12,16 @@ namespace tsk {
 
 struct tsk::TSK {
     TSK(int N, int M, int out=1);
+    TSK() {}
 
     void updateP(Eigen::MatrixXd&);
     
-    std::vector<double> predict(boost::multi_array<double,2>& x);
+    std::vector<double> predict(const boost::multi_array<double,2>& x) const;
 
-    std::vector<double> evaluate(boost::multi_array<double,2>& x, std::vector<double>& y, int classesCount);
+    std::vector<double> evaluate(const boost::multi_array<double,2>& x, const std::vector<double>& y, int classesCount) const;
     
     template <is_indexed T>
-    double predict1(T& x) {
+    double predict1(T& x) const {
         std::vector<double> y1 = _fuzzyLayer.get(x);
         std::vector<double> y2 = _roleMultipleLayer.get(y1);
         std::vector<double> y3 = _multipleLayer.get(y2, x);
@@ -43,14 +44,14 @@ struct tsk::TSK {
     int getM();
 
     template <is_indexed T>
-    std::vector<double> getFuzzyLayerOut(T& x)
+    std::vector<double> getFuzzyLayerOut(T& x) const
     {
         std::vector<double> y1 = _fuzzyLayer.get(x);
         return y1;
     }
     
     template <is_indexed T>
-    std::vector<double> getRoleMultipleLayerOut(T& x)
+    std::vector<double> getRoleMultipleLayerOut(T& x) const
     {
         std::vector<double> y1 = _fuzzyLayer.get(x);
         std::vector<double> y2 = _roleMultipleLayer.get(y1);
@@ -58,7 +59,7 @@ struct tsk::TSK {
     }
     
     template <is_indexed T>
-    std::vector<double> getMultipleLayerOut(T& x)
+    std::vector<double> getMultipleLayerOut(T& x) const
     {
         std::vector<double> y1 = _fuzzyLayer.get(x);
         std::vector<double> y2 = _roleMultipleLayer.get(y1);
@@ -75,6 +76,19 @@ struct tsk::TSK {
     void setC(std::vector<double> c);
     void setB(std::vector<double> b);
 
+    friend class boost::serialization::access;
+    
+    template<class Archive>
+    void serialize(Archive& ar, const unsigned int version)
+    {
+        ar & _n;
+        ar & _m;
+        ar & _out;
+        ar & _fuzzyLayer;
+        ar & _roleMultipleLayer;
+        ar & _multipleLayer;
+        ar & _sumLayer;
+    }
 
 private:
     tsk::layers::FuzzyLayer _fuzzyLayer;

@@ -4,3 +4,4 @@
 tsk::layers::RoleMultipleLayer::RoleMultipleLayer(int dimInput, int dimOutput) :
     Layer(dimInput, dimOutput) { }
 
+

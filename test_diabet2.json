@@ -1,0 +1,943 @@
+{
+    "tests": [
+        {
+            "details": {
+                "parameters": {
+                    "clusters": 6,
+                    "epochs": 3
+                },
+                "results": [
+                    {
+                        "accuracy": 0.9791666666666666,
+                        "mse": 0.020833333333333332,
+                        "training_time_ms": 17481
+                    },
+                    {
+                        "accuracy": 0.8854166666666666,
+                        "mse": 0.11458333333333333,
+                        "training_time_ms": 17455
+                    },
+                    {
+                        "accuracy": 0.8229166666666666,
+                        "mse": 0.17708333333333334,
+                        "training_time_ms": 17369
+                    },
+                    {
+                        "accuracy": 0.9375,
+                        "mse": 0.0625,
+                        "training_time_ms": 17466
+                    },
+                    {
+                        "accuracy": 0.8020833333333334,
+                        "mse": 0.19791666666666666,
+                        "training_time_ms": 17513
+                    }
+                ]
+            },
+            "name": "DiabetClassificationTest.BasicClassification",
+            "status": "FAILED",
+            "time_ms": 87301
+        },
+        {
+            "details": {
+                "cluster_experiments": [
+                    {
+                        "cluster_count": 2,
+                        "epoch_results": [
+                            {
+                                "clusters": 2,
+                                "epoch": 1,
+                                "noise_tests": [
+                                    {
+                                        "accuracy": 0.7447916666666666,
+                                        "noise_level": 0.01
+                                    },
+                                    {
+                                        "accuracy": 0.796875,
+                                        "noise_level": 0.05
+                                    },
+                                    {
+                                        "accuracy": 0.84375,
+                                        "noise_level": 0.1
+                                    },
+                                    {
+                                        "accuracy": 0.8541666666666666,
+                                        "noise_level": 0.15
+                                    },
+                                    {
+                                        "accuracy": 0.8645833333333334,
+                                        "noise_level": 0.2
+                                    },
+                                    {
+                                        "accuracy": 0.9166666666666666,
+                                        "noise_level": 0.25
+                                    },
+                                    {
+                                        "accuracy": 0.8802083333333334,
+                                        "noise_level": 0.3
+                                    },
+                                    {
+                                        "accuracy": 0.828125,
+                                        "noise_level": 0.4
+                                    },
+                                    {
+                                        "accuracy": 0.75,
+                                        "noise_level": 0.5
+                                    }
+                                ]
+                            },
+                            {
+                                "clusters": 2,
+                                "epoch": 3,
+                                "noise_tests": [
+                                    {
+                                        "accuracy": 0.8541666666666666,
+                                        "noise_level": 0.01
+                                    },
+                                    {
+                                        "accuracy": 0.8802083333333334,
+                                        "noise_level": 0.05
+                                    },
+                                    {
+                                        "accuracy": 0.890625,
+                                        "noise_level": 0.1
+                                    },
+                                    {
+                                        "accuracy": 0.9270833333333334,
+                                        "noise_level": 0.15
+                                    },
+                                    {
+                                        "accuracy": 0.9375,
+                                        "noise_level": 0.2
+                                    },
+                                    {
+                                        "accuracy": 0.921875,
+                                        "noise_level": 0.25
+                                    },
+                                    {
+                                        "accuracy": 0.9427083333333334,
+                                        "noise_level": 0.3
+                                    },
+                                    {
+                                        "accuracy": 0.9583333333333334,
+                                        "noise_level": 0.4
+                                    },
+                                    {
+                                        "accuracy": 0.8802083333333334,
+                                        "noise_level": 0.5
+                                    }
+                                ]
+                            },
+                            {
+                                "clusters": 2,
+                                "epoch": 5,
+                                "noise_tests": [
+                                    {
+                                        "accuracy": 0.84375,
+                                        "noise_level": 0.01
+                                    },
+                                    {
+                                        "accuracy": 0.9010416666666666,
+                                        "noise_level": 0.05
+                                    },
+                                    {
+                                        "accuracy": 0.9114583333333334,
+                                        "noise_level": 0.1
+                                    },
+                                    {
+                                        "accuracy": 0.9270833333333334,
+                                        "noise_level": 0.15
+                                    },
+                                    {
+                                        "accuracy": 0.9010416666666666,
+                                        "noise_level": 0.2
+                                    },
+                                    {
+                                        "accuracy": 0.9322916666666666,
+                                        "noise_level": 0.25
+                                    },
+                                    {
+                                        "accuracy": 0.9583333333333334,
+                                        "noise_level": 0.3
+                                    },
+                                    {
+                                        "accuracy": 0.9010416666666666,
+                                        "noise_level": 0.4
+                                    },
+                                    {
+                                        "accuracy": 0.8489583333333334,
+                                        "noise_level": 0.5
+                                    }
+                                ]
+                            },
+                            {
+                                "clusters": 2,
+                                "epoch": 7,
+                                "noise_tests": [
+                                    {
+                                        "accuracy": 0.8802083333333334,
+                                        "noise_level": 0.01
+                                    },
+                                    {
+                                        "accuracy": 0.9166666666666666,
+                                        "noise_level": 0.05
+                                    },
+                                    {
+                                        "accuracy": 0.9270833333333334,
+                                        "noise_level": 0.1
+                                    },
+                                    {
+                                        "accuracy": 0.9322916666666666,
+                                        "noise_level": 0.15
+                                    },
+                                    {
+                                        "accuracy": 0.9479166666666666,
+                                        "noise_level": 0.2
+                                    },
+                                    {
+                                        "accuracy": 0.9427083333333334,
+                                        "noise_level": 0.25
+                                    },
+                                    {
+                                        "accuracy": 0.9427083333333334,
+                                        "noise_level": 0.3
+                                    },
+                                    {
+                                        "accuracy": 0.921875,
+                                        "noise_level": 0.4
+                                    },
+                                    {
+                                        "accuracy": 0.875,
+                                        "noise_level": 0.5
+                                    }
+                                ]
+                            },
+                            {
+                                "clusters": 2,
+                                "epoch": 9,
+                                "noise_tests": [
+                                    {
+                                        "accuracy": 0.875,
+                                        "noise_level": 0.01
+                                    },
+                                    {
+                                        "accuracy": 0.875,
+                                        "noise_level": 0.05
+                                    },
+                                    {
+                                        "accuracy": 0.8854166666666666,
+                                        "noise_level": 0.1
+                                    },
+                                    {
+                                        "accuracy": 0.8854166666666666,
+                                        "noise_level": 0.15
+                                    },
+                                    {
+                                        "accuracy": 0.8697916666666666,
+                                        "noise_level": 0.2
+                                    },
+                                    {
+                                        "accuracy": 0.890625,
+                                        "noise_level": 0.25
+                                    },
+                                    {
+                                        "accuracy": 0.9322916666666666,
+                                        "noise_level": 0.3
+                                    },
+                                    {
+                                        "accuracy": 0.9166666666666666,
+                                        "noise_level": 0.4
+                                    },
+                                    {
+                                        "accuracy": 0.9010416666666666,
+                                        "noise_level": 0.5
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "cluster_count": 4,
+                        "epoch_results": [
+                            {
+                                "clusters": 4,
+                                "epoch": 1,
+                                "noise_tests": [
+                                    {
+                                        "accuracy": 0.9322916666666666,
+                                        "noise_level": 0.01
+                                    },
+                                    {
+                                        "accuracy": 0.9322916666666666,
+                                        "noise_level": 0.05
+                                    },
+                                    {
+                                        "accuracy": 0.9427083333333334,
+                                        "noise_level": 0.1
+                                    },
+                                    {
+                                        "accuracy": 0.9270833333333334,
+                                        "noise_level": 0.15
+                                    },
+                                    {
+                                        "accuracy": 0.9322916666666666,
+                                        "noise_level": 0.2
+                                    },
+                                    {
+                                        "accuracy": 0.9427083333333334,
+                                        "noise_level": 0.25
+                                    },
+                                    {
+                                        "accuracy": 0.9166666666666666,
+                                        "noise_level": 0.3
+                                    },
+                                    {
+                                        "accuracy": 0.9010416666666666,
+                                        "noise_level": 0.4
+                                    },
+                                    {
+                                        "accuracy": 0.8020833333333334,
+                                        "noise_level": 0.5
+                                    }
+                                ]
+                            },
+                            {
+                                "clusters": 4,
+                                "epoch": 3,
+                                "noise_tests": [
+                                    {
+                                        "accuracy": 0.890625,
+                                        "noise_level": 0.01
+                                    },
+                                    {
+                                        "accuracy": 0.8958333333333334,
+                                        "noise_level": 0.05
+                                    },
+                                    {
+                                        "accuracy": 0.9010416666666666,
+                                        "noise_level": 0.1
+                                    },
+                                    {
+                                        "accuracy": 0.875,
+                                        "noise_level": 0.15
+                                    },
+                                    {
+                                        "accuracy": 0.890625,
+                                        "noise_level": 0.2
+                                    },
+                                    {
+                                        "accuracy": 0.8697916666666666,
+                                        "noise_level": 0.25
+                                    },
+                                    {
+                                        "accuracy": 0.8645833333333334,
+                                        "noise_level": 0.3
+                                    },
+                                    {
+                                        "accuracy": 0.8489583333333334,
+                                        "noise_level": 0.4
+                                    },
+                                    {
+                                        "accuracy": 0.7916666666666666,
+                                        "noise_level": 0.5
+                                    }
+                                ]
+                            },
+                            {
+                                "clusters": 4,
+                                "epoch": 5,
+                                "noise_tests": [
+                                    {
+                                        "accuracy": 0.8958333333333334,
+                                        "noise_level": 0.01
+                                    },
+                                    {
+                                        "accuracy": 0.9375,
+                                        "noise_level": 0.05
+                                    },
+                                    {
+                                        "accuracy": 0.9322916666666666,
+                                        "noise_level": 0.1
+                                    },
+                                    {
+                                        "accuracy": 0.9270833333333334,
+                                        "noise_level": 0.15
+                                    },
+                                    {
+                                        "accuracy": 0.921875,
+                                        "noise_level": 0.2
+                                    },
+                                    {
+                                        "accuracy": 0.9114583333333334,
+                                        "noise_level": 0.25
+                                    },
+                                    {
+                                        "accuracy": 0.9114583333333334,
+                                        "noise_level": 0.3
+                                    },
+                                    {
+                                        "accuracy": 0.8697916666666666,
+                                        "noise_level": 0.4
+                                    },
+                                    {
+                                        "accuracy": 0.734375,
+                                        "noise_level": 0.5
+                                    }
+                                ]
+                            },
+                            {
+                                "clusters": 4,
+                                "epoch": 7,
+                                "noise_tests": [
+                                    {
+                                        "accuracy": 0.828125,
+                                        "noise_level": 0.01
+                                    },
+                                    {
+                                        "accuracy": 0.8541666666666666,
+                                        "noise_level": 0.05
+                                    },
+                                    {
+                                        "accuracy": 0.8333333333333334,
+                                        "noise_level": 0.1
+                                    },
+                                    {
+                                        "accuracy": 0.90625,
+                                        "noise_level": 0.15
+                                    },
+                                    {
+                                        "accuracy": 0.8385416666666666,
+                                        "noise_level": 0.2
+                                    },
+                                    {
+                                        "accuracy": 0.9114583333333334,
+                                        "noise_level": 0.25
+                                    },
+                                    {
+                                        "accuracy": 0.9166666666666666,
+                                        "noise_level": 0.3
+                                    },
+                                    {
+                                        "accuracy": 0.8489583333333334,
+                                        "noise_level": 0.4
+                                    },
+                                    {
+                                        "accuracy": 0.8125,
+                                        "noise_level": 0.5
+                                    }
+                                ]
+                            },
+                            {
+                                "clusters": 4,
+                                "epoch": 9,
+                                "noise_tests": [
+                                    {
+                                        "accuracy": 0.9427083333333334,
+                                        "noise_level": 0.01
+                                    },
+                                    {
+                                        "accuracy": 0.953125,
+                                        "noise_level": 0.05
+                                    },
+                                    {
+                                        "accuracy": 0.90625,
+                                        "noise_level": 0.1
+                                    },
+                                    {
+                                        "accuracy": 0.9322916666666666,
+                                        "noise_level": 0.15
+                                    },
+                                    {
+                                        "accuracy": 0.8854166666666666,
+                                        "noise_level": 0.2
+                                    },
+                                    {
+                                        "accuracy": 0.921875,
+                                        "noise_level": 0.25
+                                    },
+                                    {
+                                        "accuracy": 0.890625,
+                                        "noise_level": 0.3
+                                    },
+                                    {
+                                        "accuracy": 0.8229166666666666,
+                                        "noise_level": 0.4
+                                    },
+                                    {
+                                        "accuracy": 0.796875,
+                                        "noise_level": 0.5
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "cluster_count": 6,
+                        "epoch_results": [
+                            {
+                                "clusters": 6,
+                                "epoch": 1,
+                                "noise_tests": [
+                                    {
+                                        "accuracy": 0.8229166666666666,
+                                        "noise_level": 0.01
+                                    },
+                                    {
+                                        "accuracy": 0.859375,
+                                        "noise_level": 0.05
+                                    },
+                                    {
+                                        "accuracy": 0.8697916666666666,
+                                        "noise_level": 0.1
+                                    },
+                                    {
+                                        "accuracy": 0.9114583333333334,
+                                        "noise_level": 0.15
+                                    },
+                                    {
+                                        "accuracy": 0.9010416666666666,
+                                        "noise_level": 0.2
+                                    },
+                                    {
+                                        "accuracy": 0.9322916666666666,
+                                        "noise_level": 0.25
+                                    },
+                                    {
+                                        "accuracy": 0.9322916666666666,
+                                        "noise_level": 0.3
+                                    },
+                                    {
+                                        "accuracy": 0.8697916666666666,
+                                        "noise_level": 0.4
+                                    },
+                                    {
+                                        "accuracy": 0.8229166666666666,
+                                        "noise_level": 0.5
+                                    }
+                                ]
+                            },
+                            {
+                                "clusters": 6,
+                                "epoch": 3,
+                                "noise_tests": [
+                                    {
+                                        "accuracy": 0.8385416666666666,
+                                        "noise_level": 0.01
+                                    },
+                                    {
+                                        "accuracy": 0.84375,
+                                        "noise_level": 0.05
+                                    },
+                                    {
+                                        "accuracy": 0.890625,
+                                        "noise_level": 0.1
+                                    },
+                                    {
+                                        "accuracy": 0.8229166666666666,
+                                        "noise_level": 0.15
+                                    },
+                                    {
+                                        "accuracy": 0.84375,
+                                        "noise_level": 0.2
+                                    },
+                                    {
+                                        "accuracy": 0.8333333333333334,
+                                        "noise_level": 0.25
+                                    },
+                                    {
+                                        "accuracy": 0.8541666666666666,
+                                        "noise_level": 0.3
+                                    },
+                                    {
+                                        "accuracy": 0.7447916666666666,
+                                        "noise_level": 0.4
+                                    },
+                                    {
+                                        "accuracy": 0.640625,
+                                        "noise_level": 0.5
+                                    }
+                                ]
+                            },
+                            {
+                                "clusters": 6,
+                                "epoch": 5,
+                                "noise_tests": [
+                                    {
+                                        "accuracy": 0.890625,
+                                        "noise_level": 0.01
+                                    },
+                                    {
+                                        "accuracy": 0.875,
+                                        "noise_level": 0.05
+                                    },
+                                    {
+                                        "accuracy": 0.8645833333333334,
+                                        "noise_level": 0.1
+                                    },
+                                    {
+                                        "accuracy": 0.90625,
+                                        "noise_level": 0.15
+                                    },
+                                    {
+                                        "accuracy": 0.8802083333333334,
+                                        "noise_level": 0.2
+                                    },
+                                    {
+                                        "accuracy": 0.8489583333333334,
+                                        "noise_level": 0.25
+                                    },
+                                    {
+                                        "accuracy": 0.8645833333333334,
+                                        "noise_level": 0.3
+                                    },
+                                    {
+                                        "accuracy": 0.8385416666666666,
+                                        "noise_level": 0.4
+                                    },
+                                    {
+                                        "accuracy": 0.7552083333333334,
+                                        "noise_level": 0.5
+                                    }
+                                ]
+                            },
+                            {
+                                "clusters": 6,
+                                "epoch": 7,
+                                "noise_tests": [
+                                    {
+                                        "accuracy": 0.8645833333333334,
+                                        "noise_level": 0.01
+                                    },
+                                    {
+                                        "accuracy": 0.859375,
+                                        "noise_level": 0.05
+                                    },
+                                    {
+                                        "accuracy": 0.8541666666666666,
+                                        "noise_level": 0.1
+                                    },
+                                    {
+                                        "accuracy": 0.8854166666666666,
+                                        "noise_level": 0.15
+                                    },
+                                    {
+                                        "accuracy": 0.8854166666666666,
+                                        "noise_level": 0.2
+                                    },
+                                    {
+                                        "accuracy": 0.859375,
+                                        "noise_level": 0.25
+                                    },
+                                    {
+                                        "accuracy": 0.8697916666666666,
+                                        "noise_level": 0.3
+                                    },
+                                    {
+                                        "accuracy": 0.828125,
+                                        "noise_level": 0.4
+                                    },
+                                    {
+                                        "accuracy": 0.7135416666666666,
+                                        "noise_level": 0.5
+                                    }
+                                ]
+                            },
+                            {
+                                "clusters": 6,
+                                "epoch": 9,
+                                "noise_tests": [
+                                    {
+                                        "accuracy": 0.8489583333333334,
+                                        "noise_level": 0.01
+                                    },
+                                    {
+                                        "accuracy": 0.8697916666666666,
+                                        "noise_level": 0.05
+                                    },
+                                    {
+                                        "accuracy": 0.8645833333333334,
+                                        "noise_level": 0.1
+                                    },
+                                    {
+                                        "accuracy": 0.875,
+                                        "noise_level": 0.15
+                                    },
+                                    {
+                                        "accuracy": 0.8958333333333334,
+                                        "noise_level": 0.2
+                                    },
+                                    {
+                                        "accuracy": 0.8802083333333334,
+                                        "noise_level": 0.25
+                                    },
+                                    {
+                                        "accuracy": 0.8802083333333334,
+                                        "noise_level": 0.3
+                                    },
+                                    {
+                                        "accuracy": 0.828125,
+                                        "noise_level": 0.4
+                                    },
+                                    {
+                                        "accuracy": 0.7135416666666666,
+                                        "noise_level": 0.5
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "cluster_count": 8,
+                        "epoch_results": [
+                            {
+                                "clusters": 8,
+                                "epoch": 1,
+                                "noise_tests": [
+                                    {
+                                        "accuracy": 0.984375,
+                                        "noise_level": 0.01
+                                    },
+                                    {
+                                        "accuracy": 0.96875,
+                                        "noise_level": 0.05
+                                    },
+                                    {
+                                        "accuracy": 0.8958333333333334,
+                                        "noise_level": 0.1
+                                    },
+                                    {
+                                        "accuracy": 0.8489583333333334,
+                                        "noise_level": 0.15
+                                    },
+                                    {
+                                        "accuracy": 0.7760416666666666,
+                                        "noise_level": 0.2
+                                    },
+                                    {
+                                        "accuracy": 0.7291666666666666,
+                                        "noise_level": 0.25
+                                    },
+                                    {
+                                        "accuracy": 0.7447916666666666,
+                                        "noise_level": 0.3
+                                    },
+                                    {
+                                        "accuracy": 0.609375,
+                                        "noise_level": 0.4
+                                    },
+                                    {
+                                        "accuracy": 0.5989583333333334,
+                                        "noise_level": 0.5
+                                    }
+                                ]
+                            },
+                            {
+                                "clusters": 8,
+                                "epoch": 3,
+                                "noise_tests": [
+                                    {
+                                        "accuracy": 0.921875,
+                                        "noise_level": 0.01
+                                    },
+                                    {
+                                        "accuracy": 0.7916666666666666,
+                                        "noise_level": 0.05
+                                    },
+                                    {
+                                        "accuracy": 0.7447916666666666,
+                                        "noise_level": 0.1
+                                    },
+                                    {
+                                        "accuracy": 0.640625,
+                                        "noise_level": 0.15
+                                    },
+                                    {
+                                        "accuracy": 0.515625,
+                                        "noise_level": 0.2
+                                    },
+                                    {
+                                        "accuracy": 0.5364583333333334,
+                                        "noise_level": 0.25
+                                    },
+                                    {
+                                        "accuracy": 0.4947916666666667,
+                                        "noise_level": 0.3
+                                    },
+                                    {
+                                        "accuracy": 0.40625,
+                                        "noise_level": 0.4
+                                    },
+                                    {
+                                        "accuracy": 0.3802083333333333,
+                                        "noise_level": 0.5
+                                    }
+                                ]
+                            },
+                            {
+                                "clusters": 8,
+                                "epoch": 5,
+                                "noise_tests": [
+                                    {
+                                        "accuracy": 1.0,
+                                        "noise_level": 0.01
+                                    },
+                                    {
+                                        "accuracy": 0.9166666666666666,
+                                        "noise_level": 0.05
+                                    },
+                                    {
+                                        "accuracy": 0.8125,
+                                        "noise_level": 0.1
+                                    },
+                                    {
+                                        "accuracy": 0.6770833333333334,
+                                        "noise_level": 0.15
+                                    },
+                                    {
+                                        "accuracy": 0.6614583333333334,
+                                        "noise_level": 0.2
+                                    },
+                                    {
+                                        "accuracy": 0.625,
+                                        "noise_level": 0.25
+                                    },
+                                    {
+                                        "accuracy": 0.5572916666666666,
+                                        "noise_level": 0.3
+                                    },
+                                    {
+                                        "accuracy": 0.484375,
+                                        "noise_level": 0.4
+                                    },
+                                    {
+                                        "accuracy": 0.3854166666666667,
+                                        "noise_level": 0.5
+                                    }
+                                ]
+                            },
+                            {
+                                "clusters": 8,
+                                "epoch": 7,
+                                "noise_tests": [
+                                    {
+                                        "accuracy": 0.9270833333333334,
+                                        "noise_level": 0.01
+                                    },
+                                    {
+                                        "accuracy": 0.828125,
+                                        "noise_level": 0.05
+                                    },
+                                    {
+                                        "accuracy": 0.796875,
+                                        "noise_level": 0.1
+                                    },
+                                    {
+                                        "accuracy": 0.796875,
+                                        "noise_level": 0.15
+                                    },
+                                    {
+                                        "accuracy": 0.7604166666666666,
+                                        "noise_level": 0.2
+                                    },
+                                    {
+                                        "accuracy": 0.71875,
+                                        "noise_level": 0.25
+                                    },
+                                    {
+                                        "accuracy": 0.71875,
+                                        "noise_level": 0.3
+                                    },
+                                    {
+                                        "accuracy": 0.6770833333333334,
+                                        "noise_level": 0.4
+                                    },
+                                    {
+                                        "accuracy": 0.5,
+                                        "noise_level": 0.5
+                                    }
+                                ]
+                            },
+                            {
+                                "clusters": 8,
+                                "epoch": 9,
+                                "noise_tests": [
+                                    {
+                                        "accuracy": 1.0,
+                                        "noise_level": 0.01
+                                    },
+                                    {
+                                        "accuracy": 0.765625,
+                                        "noise_level": 0.05
+                                    },
+                                    {
+                                        "accuracy": 0.5364583333333334,
+                                        "noise_level": 0.1
+                                    },
+                                    {
+                                        "accuracy": 0.4635416666666667,
+                                        "noise_level": 0.15
+                                    },
+                                    {
+                                        "accuracy": 0.515625,
+                                        "noise_level": 0.2
+                                    },
+                                    {
+                                        "accuracy": 0.453125,
+                                        "noise_level": 0.25
+                                    },
+                                    {
+                                        "accuracy": 0.4322916666666667,
+                                        "noise_level": 0.3
+                                    },
+                                    {
+                                        "accuracy": 0.3697916666666667,
+                                        "noise_level": 0.4
+                                    },
+                                    {
+                                        "accuracy": 0.22916666666666666,
+                                        "noise_level": 0.5
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            },
+            "name": "DiabetClassificationTest.NoisyDataClassification",
+            "status": "FAILED",
+            "time_ms": 528382
+        },
+        {
+            "details": {
+                "cluster_tests": [
+                    {
+                        "accuracy": 0.8229166666666666,
+                        "clusters": 2,
+                        "training_time_ms": 1251
+                    },
+                    {
+                        "accuracy": 0.8229166666666666,
+                        "clusters": 4,
+                        "training_time_ms": 6190
+                    },
+                    {
+                        "accuracy": 0.765625,
+                        "clusters": 6,
+                        "training_time_ms": 17483
+                    },
+                    {
+                        "accuracy": 0.953125,
+                        "clusters": 8,
+                        "training_time_ms": 37549
+                    }
+                ],
+                "parameters": {
+                    "epochs": 3
+                }
+            },
+            "name": "DiabetClassificationTest.DifferentClusterCounts",
+            "status": "FAILED",
+            "time_ms": 62481
+        }
+    ]
+}

@@ -69,7 +69,7 @@ public:
     }
 };
 
-auto *listener = new JsonTestListener("test_diabet1.json");
+auto *listener = new JsonTestListener("test_diabet3.json");
 
 class DiabetClassificationTest : public ::testing::Test
 {
@@ -81,7 +81,7 @@ protected:
     static void SetUpTestSuite()
     {
         dataset.shuffle();
-        dataset.shuffle();
+        datasetPair = dataset.splitDatasetOnTrainAndTest(0.8);
     }
 
     static boost::multi_array<double, 2> addNoise(const boost::multi_array<double, 2> &data, double noiseLevel)
@@ -96,7 +96,7 @@ protected:
 
         for (size_t i = 0; i < num_elements; ++i)
         {
-            data_ptr[i] += dist(gen) * data_ptr[i];
+            data_ptr[i] += dist(gen);
         }
 
         return noisyData;
@@ -107,26 +107,24 @@ protected:
         tsk::CMeans cmeans(m, 0, 0.0001);
         cmeans.fit(datasetPair.first.getX());
 
-        auto tskModel = std::make_unique<tsk::TSK>(dataset.getX().shape()[1], m);
+        auto tskModel = std::make_unique<tsk::TSK>(datasetPair.first.getX().shape()[1], m);
         tskModel->setC(cmeans.getCentroids());
         tskModel->setSigma(cmeans.getSigma());
-
         learning::HybridAlgorithm hybridAlg(tskModel.get(), datasetPair.first);
-        hybridAlg.learning(datasetPair.first.getCountVectors(), epoch, 50, 0.1);
-
+        hybridAlg.learning(datasetPair.first.getCountVectors(), epoch, 4, 0.001);
         return tskModel;
     }
 };
 
-std::string filename = "resource/new-tic-tac-toc.csv";
+std::string filename = "resource/old/old-tic-tac-toc.csv";
 Dataset DiabetClassificationTest::dataset = Dataset::readFromCsv(filename);
 std::pair<Dataset, Dataset> DiabetClassificationTest::datasetPair = dataset.splitDatasetOnTrainAndTest(0.8);
 
 TEST_F(DiabetClassificationTest, BasicClassification)
 {
-    const int m = 4;
-    const int epochs = 1;
-    const int count_of_iterations = 15;
+    const int m = 8;
+    const int epochs = 3;
+    const int count_of_iterations = 5;
     json results = json::array();
 
     for (int i = 0; i < count_of_iterations; ++i)
@@ -165,8 +163,8 @@ TEST_F(DiabetClassificationTest, BasicClassification)
 
 TEST_F(DiabetClassificationTest, NoisyDataClassification)
 {
-    const std::vector<int> clusterCounts = {1, 2, 3, 4, 5, 6, 7, 8};
-    const int max_epochs = 15;
+    const std::vector<int> clusterCounts = {6, 8, 10};
+    const int max_epochs = 10;
     json noise_results = json::array();
     const std::vector<double> noiseLevels = {0.01, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.4, 0.5};
 
@@ -174,7 +172,7 @@ TEST_F(DiabetClassificationTest, NoisyDataClassification)
     {
         json cluster_epoch_results = json::array();
 
-        for (int epoch = 1; epoch <= max_epochs; ++epoch)
+        for (int epoch = 1; epoch <= max_epochs; epoch+=2)
         {
             auto model = createAndTrainModel(m, epoch);
             json epoch_noise_results = json::array();
@@ -203,8 +201,8 @@ TEST_F(DiabetClassificationTest, NoisyDataClassification)
 
 TEST_F(DiabetClassificationTest, DifferentClusterCounts)
 {
-    const std::vector<int> clusterCounts = {1, 2, 3, 4, 5, 6, 7, 8};
-    int epochs = 1;
+    const std::vector<int> clusterCounts = {4, 6, 8};
+    int epochs = 3;
     json cluster_results = json::array();
 
     for (int m : clusterCounts)

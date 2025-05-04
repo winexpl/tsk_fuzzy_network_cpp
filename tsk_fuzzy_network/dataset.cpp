@@ -30,6 +30,29 @@ bool isConvertibleToDouble(const std::string &str)
     }
 }
 
+boost::multi_array<double, 2> &minMaxNormalize(boost::multi_array<double, 2> &x)
+{
+    size_t rows = x.shape()[0];
+    size_t cols = x.shape()[1];
+
+    for (size_t j = 0; j < cols; ++j)
+    {
+        double minVal = std::numeric_limits<double>::max();
+        double maxVal = std::numeric_limits<double>::lowest();
+
+        for (size_t i = 0; i < rows; ++i)
+        {
+            minVal = std::min(minVal, x[i][j]);
+            maxVal = std::max(maxVal, x[i][j]);
+        }
+
+        for (size_t i = 0; i < rows; ++i)
+        {
+            x[i][j] = (x[i][j] - minVal) / (maxVal - minVal);
+        }
+    }
+    return x;
+}
 Dataset::Dataset(boost::multi_array<double, 2> x,
                  std::vector<double> d,
                  int dim,
@@ -46,6 +69,7 @@ Dataset::Dataset(boost::multi_array<double, 2> x,
                                                            columnsMap{columnsMap},
                                                            classMap{classMap}
 {
+    this->x = x;
     if (x.shape()[0] != d.size())
     {
         throw std::runtime_error("The number of parameter lines must match the number of outputs.");
@@ -202,6 +226,7 @@ Dataset Dataset::readFromCsv(std::string &filename)
         }
     }
 
+    minMaxNormalize(boost_x);
     return Dataset(boost_x, d, boost_x.shape()[0], classMap.size(), paramNames, classNames, columnsMap, classMap);
 }
 

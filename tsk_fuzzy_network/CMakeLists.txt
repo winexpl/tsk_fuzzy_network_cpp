@@ -3,13 +3,12 @@ cmake_minimum_required(VERSION 3.28)
 project(tsk-fuzzy-network LANGUAGES CXX CUDA)
 
 set(CMAKE_CXX_STANDARD 23)
-set(CMAKE_CUDA_STANDARD 17)
+set(CMAKE_CUDA_STANDARD 23)
 
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Debug)
 endif()
 
-set(CMAKE_CUDA_STANDARD 17)
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-relaxed-constexpr")
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g")
 set(CMAKE_CUDA_ARCHITECTURES "89")
@@ -59,3 +58,9 @@ target_link_libraries(TSK PUBLIC
     Boost::thread 
     Boost::serialization
 )
+
+find_package(OpenMP REQUIRED)
+target_link_libraries(TSK PRIVATE OpenMP::OpenMP_CXX)
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp")

@@ -6,7 +6,7 @@
 #include "metric.h"
 #include <cuda_runtime.h>
 #include "tsk_fuzzy_network/cuda_learning_algorithm.h"
-
+#include <omp.h>
 
 Eigen::MatrixXd boostMultiArrayToEigenMatrix(const boost::multi_array<double, 2> &boostMultiArray)
 {
@@ -85,7 +85,7 @@ void learning::HybridAlgorithm::learning(int batchSize, int epochCount, int coun
 
             for (int j = 0; j < countSecondStepIter; ++j)
             {
-                learningTskBatchSecondStep(startIndex, endIndex, nu);
+                learningTskBatchSecondStepGPU(startIndex, endIndex, nu);
             }
 
             auto [accuracy2, mse2] = calculateMetrics();
@@ -125,7 +125,6 @@ void learning::HybridAlgorithm::learningTskBatchSecondStep(int startIndex, int e
     const int n = tsk->getN();
     const int m = tsk->getM();
     const int totalParams = n * m;
-    const auto &p = tsk->getP();
     const auto &vectors = dataset.getX();
     const auto &targets = dataset.getD();
 
@@ -146,30 +145,28 @@ void learning::HybridAlgorithm::learningTskBatchSecondStep(int startIndex, int e
             double currentSigma = tsk->getSigma()[paramNum];
             double currentB = tsk->getB()[paramNum];
 
-            double dEdC = dE(error, p, currentTrainVector, paramNum,
+            double dEdC = dE(error, currentTrainVector, paramNum,
                              [](double x, double sigma, double c, double b)
                              {
                                  const double t = (x - c) / sigma;
                                  const double t_pow = std::pow(t, 2 * b - 1);
-                                 return 2.0 * b / sigma * t_pow / std::pow(1 + t * t, 2);
+                                 return 2.0 * b / sigma * t_pow / std::pow(1 + std::pow(t, 2 * b), 2);
                              });
 
-            double dEdSigma = dE(error, p, currentTrainVector, paramNum,
+            double dEdSigma = dE(error, currentTrainVector, paramNum,
                                  [](double x, double sigma, double c, double b)
                                  {
                                      const double t = (x - c) / sigma;
                                      const double t_pow = std::pow(t, 2 * b);
-                                     return 2.0 * b / sigma * t_pow / std::pow(1 + t * t, 2);
+                                     return 2.0 * b / sigma * t_pow / std::pow(1 + t_pow, 2);
                                  });
 
-            double dEdB = dE(error, p, currentTrainVector, paramNum,
+            double dEdB = dE(error, currentTrainVector, paramNum,
                              [](double x, double sigma, double c, double b)
                              {
                                  const double t = (x - c) / sigma;
-                                 if (std::abs(t) < 1e-10)
-                                     return 0.0;
                                  const double t_pow = std::pow(t, 2 * b);
-                                 return -2.0 * t_pow * std::log(std::abs(t)) / std::pow(1 + t * t, 2);
+                                 return -2.0 * t_pow * std::log(std::abs(t)) / std::pow(1 + t_pow, 2);
                              });
 
             auto safeUpdate = [](double &param, double gradient, double learningRate)
@@ -191,77 +188,58 @@ void learning::HybridAlgorithm::learningTskBatchSecondStep(int startIndex, int e
     }
 }
 
-double learning::HybridAlgorithm::dE(double error, const boost::multi_array<double, 2> &params,
-                                     const auto &inputVector, int paramNum, const std::function<double(double, double, double, double)> &gradientFunc)
-{
+double learning::HybridAlgorithm::dE(double e, const auto &x,
+    int paramNum, const std::function<double(double, double, double, double)> &dnuFunction) {
     /**
-     * e - ошибка
-     * p - двумерный массив параметров
-     * x - текущий вектор параметров
-     * paramNum - номер изменяемого параметра
-     * dnu - функция dW (реализуется через std::function или другую функцию)
-     */
-    const size_t numRoles = params.shape()[0];
-    const size_t paramSize = params.shape()[1];
-    double weightedSum = 0.0;
-
-    const int inputOffset = paramNum / tsk->getM();
-    const double x_val = inputVector[inputOffset];
-
-    for (size_t roleIdx = 0; roleIdx < numRoles; ++roleIdx)
-    {
-        double linearCombination = params[roleIdx][0];
-
-        for (size_t paramIdx = 1; paramIdx < paramSize; ++paramIdx)
-        {
-            linearCombination += params[roleIdx][paramIdx] * inputVector[paramIdx - 1];
+    * e - ошибка
+    * p - двумерный массив параметров
+    * x - текущий вектор параметров
+    * paramNum - номер изменяемого параметра
+    * dnu - функция dW (реализуется через std::function или другую функцию)
+    */
+    double sum_p = 0.0;
+    const auto &p = tsk->getP();
+    for (size_t roleNum = 0; roleNum < p.shape()[0]; ++roleNum) {
+        double temp = p[roleNum][0];
+        for (size_t xIndexInPolynom = 1; xIndexInPolynom < p.shape()[1]; ++xIndexInPolynom) {
+            temp += p[roleNum][xIndexInPolynom] * x[xIndexInPolynom - 1];
         }
-
-        const double weightDerivative = dW(paramNum, roleIdx, inputVector, gradientFunc);
-        weightedSum += linearCombination * weightDerivative;
+        double dw = dW(paramNum, roleNum, x, dnuFunction);
+        temp *= dw;
+        sum_p += temp;
     }
-    return error * weightedSum;
+    return e * sum_p;
 }
 
-double learning::HybridAlgorithm::dW(int paramNum, int roleNum, const auto &inputVector,
-                                     const std::function<double(double, double, double, double)> &gradientFunc)
+double learning::HybridAlgorithm::dW(int paramNum, int roleNum, const auto& x, const std::function<double(double, double, double, double)>& dnuFunction)
 {
-    const int N = tsk->getN();
-    const int M = tsk->getM();
-    const int paramRoleIdx = paramNum % M;
-    const int featureIdx = paramNum / M;
+    /**
+     * paramNum - [cij] (=i*j) i-правило, j-параметр входного вектора
+     * roleNum - [wk] (=k)
+     */
+    int vectorLength = tsk->getN(); // n
+    int countOfRole = tsk->getM(); // m
 
-    const double m_val = m(inputVector);
-    const double l_val = l(inputVector, roleNum);
-    const double denominator = m_val * m_val;
+    int paramRoleNum = paramNum % countOfRole; // i for changedParam
+    int paramVectorIndexNum = paramNum / countOfRole; // j for changedParam
 
-    const double numerator = (deltaKronecker(roleNum, paramRoleIdx) * m_val - l_val);
 
-    double membershipProduct = 1.0;
-    const double *sigma = tsk->getSigma().data();
-    const double *c = tsk->getC().data();
-    const double *b = tsk->getB().data();
+    double m_res = m(x);
+    double l_res = l(x, roleNum);
 
-    for (int j = 0; j < N; ++j)
+
+    double res = (deltaKronecker(roleNum, paramRoleNum) * m_res - l_res) / std::pow(m_res, 2);
+
+    double multiple = 1;
+    for(int j = 0; j < vectorLength; ++j)
     {
-        if (j != featureIdx)
-        {
-            const int idx = j * M + paramRoleIdx;
-            membershipProduct *= tsk->applyFuzzyFunction(
-                inputVector[j],
-                sigma[idx],
-                c[idx],
-                b[idx]);
-        }
+        if(paramVectorIndexNum != j)
+            multiple *= tsk->applyFuzzyFunction(x[j], tsk->getSigma()[j*countOfRole+paramRoleNum], tsk->getC()[j*countOfRole+paramRoleNum], tsk->getB()[j*countOfRole+paramRoleNum]);
     }
-
-    const double x = inputVector[featureIdx];
-    const double currentSigma = sigma[paramNum];
-    const double currentC = c[paramNum];
-    const double currentB = b[paramNum];
-    const double derivative = gradientFunc(x, currentSigma, currentC, currentB);
-
-    return (numerator / denominator) * membershipProduct * derivative;
+    res *= multiple;
+    double dnu = dnuFunction(x[paramVectorIndexNum], tsk->getSigma()[paramNum], tsk->getC()[paramNum], tsk->getB()[paramNum]);
+    res *= dnu;
+    return res;
 }
 
 double learning::HybridAlgorithm::m(const auto x)
@@ -313,73 +291,13 @@ void learning::HybridAlgorithm::learningTskBatchSecondStepGPU(int startIndex, in
     const int n = tsk->getN();
     const int m = tsk->getM();
     const int totalParams = n * m;
-    const auto &p = tsk->getP();
+    auto &p = tsk->getP();
+    const int dim = dataset.getCountVectors();
     const auto &vectors = dataset.getX();
     const auto &targets = dataset.getD();
-    const int num_features = vectors[0].size();
-    const int numRoles = p.shape()[0];
-    const int paramSize = p.shape()[1];
+    auto &c = tsk->getC();
+    auto &sigma = tsk->getSigma();
+    auto &b = tsk->getB();
 
-    std::vector<double> initial_c = tsk->getC();
-    std::vector<double> initial_sigma = tsk->getSigma();
-    std::vector<double> initial_b = tsk->getB();
-
-    double *d_c, *d_sigma, *d_b;
-    double *d_vectors, *d_targets, *d_params;
-
-    cudaMalloc(&d_c, totalParams * sizeof(double));
-    cudaMalloc(&d_sigma, totalParams * sizeof(double));
-    cudaMalloc(&d_b, totalParams * sizeof(double));
-    cudaMalloc(&d_vectors, vectors.size() * num_features * sizeof(double));
-    cudaMalloc(&d_targets, targets.size() * sizeof(double));
-    cudaMalloc(&d_params, numRoles * paramSize * sizeof(double));
-
-    cudaMemcpy(d_c, tsk->getC().data(), totalParams * sizeof(double), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_sigma, tsk->getSigma().data(), totalParams * sizeof(double), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_b, tsk->getB().data(), totalParams * sizeof(double), cudaMemcpyHostToDevice);
-
-    std::vector<double> flat_vectors;
-    for (const auto &v : vectors)
-    {
-        flat_vectors.insert(flat_vectors.end(), v.begin(), v.end());
-    }
-    cudaMemcpy(d_vectors, flat_vectors.data(), flat_vectors.size() * sizeof(double), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_targets, targets.data(), targets.size() * sizeof(double), cudaMemcpyHostToDevice);
-
-    std::vector<double> flat_params(numRoles * paramSize);
-    for (int i = 0; i < numRoles; ++i)
-    {
-        for (int j = 0; j < paramSize; ++j)
-        {
-            flat_params[i * paramSize + j] = p[i][j];
-        }
-    }
-    cudaMemcpy(d_params, flat_params.data(), flat_params.size() * sizeof(double), cudaMemcpyHostToDevice);
-    int blockSize = 256;
-    int gridSize = endIndex - startIndex;
-
-    learningKernelWrapper(gridSize, gridSize, d_c, d_sigma, d_b,
-        d_vectors, d_targets, d_params,
-        numRoles, paramSize, n, m, num_features,
-        startIndex, endIndex, nu, nu, nu);
-
-    cudaMemcpy(tsk->getC().data(), d_c, totalParams * sizeof(double), cudaMemcpyDeviceToHost);
-    cudaMemcpy(tsk->getSigma().data(), d_sigma, totalParams * sizeof(double), cudaMemcpyDeviceToHost);
-    cudaMemcpy(tsk->getB().data(), d_b, totalParams * sizeof(double), cudaMemcpyDeviceToHost);
-
-    bool c_changed = false, sigma_changed = false, b_changed = false;
-    const double epsilon = 1e-10; // Порог для сравнения чисел с плавающей точкой
-    
-    for (int i = 0; i < totalParams; ++i) {
-        if (fabs(initial_c[i] - tsk->getC()[i]) > epsilon) c_changed = true;
-        if (fabs(initial_sigma[i] - tsk->getSigma()[i]) > epsilon) sigma_changed = true;
-        if (fabs(initial_b[i] - tsk->getB()[i]) > epsilon) b_changed = true;
-    }
-
-    cudaFree(d_c);
-    cudaFree(d_sigma);
-    cudaFree(d_b);
-    cudaFree(d_vectors);
-    cudaFree(d_targets);
-    cudaFree(d_params);
+    learningKernelWrapper(vectors, targets, startIndex, endIndex, nu, n, m, c, sigma, b, p, tsk);
 }

@@ -6,284 +6,267 @@
 #include <vector>
 #include <boost/multi_array.hpp>
 #include <thrust/device_vector.h>
-#include <thrust/transform.h>
-#include <thrust/functional.h>
 #include <thrust/copy.h>
+#include "metric.h"
 #include "tsk_fuzzy_network/learning_algorithms.h"
 #include "tsk_fuzzy_network/tsk.h"
+#include <iomanip>
 
-typedef double (*GradientFunc)(double, double, double, double);
+#define CHECK_CUDA_ERROR(err)                                                            \
+    if (err != cudaSuccess)                                                              \
+    {                                                                                    \
+        printf("CUDA Error [%s:%d]: %s\n", __FILE__, __LINE__, cudaGetErrorString(err)); \
+        exit(1);                                                                         \
+    }
 
 namespace
 {
     constexpr int WARP_SIZE = 32;
     constexpr int OPTIMAL_BLOCK_SIZE = 256;
-    constexpr double EPSILON = 1e-100;
+    constexpr double EPSILON = 1e-8;
+    constexpr int UNROLL_FACTOR = 4;
 
-    __device__ __forceinline__ double safe_pow(double a, double b)
-    {
-        return (a <= 0.0) ? 0.0 : __expf(b * __logf(a));
-    }
-
-    __device__ __forceinline__ double safe_divide(double a, double b)
-    {
-        return (fabs(b) < EPSILON) ? 0.0 : __fdividef(a, b);
-    }
+    // Динамические буферы моментума
+    __device__ double *momentum_c = nullptr;
+    __device__ double *momentum_sigma = nullptr;
+    __device__ double *momentum_b = nullptr;
 }
 
-__device__ __forceinline__ double fuzzyFunction(double x, double sigma, double c, double b)
+__device__ __forceinline__ double fuzzy_membership(double x, double sigma, double c, double b)
 {
-    const double t = __fdividef(x - c, sigma);
+    const double t = (x - c) / sigma;
     const double t_sq = t * t;
-    const double denominator = __fadd_rn(1.0, safe_pow(t_sq, b));
-    return safe_divide(1.0, denominator);
+    return 1.0 / (1.0 + pow(t_sq, b));
 }
 
-__device__ __forceinline__ int deltaKronecker(int i, int j)
+__device__ __forceinline__ void clip_gradient(double *grad, double clip_value)
 {
-    return (i == j) ? 1 : 0;
-}
-
-__device__ double compute_m(const double *x, const double *c, const double *sigma,
-                            const double *b, int n, int m)
-{
-    double res = 0.0;
-    for (int i = 0; i < m; ++i)
+    double grad_norm = sqrt(*grad * *grad);
+    if (grad_norm > clip_value)
     {
-        double temp = 1.0;
-        for (int j = 0; j < n; ++j)
-        {
-            int idx = j * m + i;
-            temp = __fmul_rn(temp, fuzzyFunction(x[j], sigma[idx], c[idx], b[idx]));
-        }
-        res = __fadd_rn(res, temp);
+        *grad = (*grad) * clip_value / (grad_norm + EPSILON);
     }
-    return fmax(res, EPSILON);
 }
 
-__device__ double compute_l(const double *x, int i, const double *c,
-                            const double *sigma, const double *b, int n, int m)
+__global__ void fuzzy_learning_kernel(
+    double *__restrict__ c,
+    double *__restrict__ sigma,
+    double *__restrict__ b,
+    const double *__restrict__ input,
+    const double target_error,
+    const double *__restrict__ params,
+    int num_features,
+    int num_rules,
+    learning::TrainingConfig config)
 {
-    double temp = 1.0;
-    for (int j = 0; j < n; ++j)
-    {
-        int idx = j * m + i;
-        temp = __fmul_rn(temp, fuzzyFunction(x[j], sigma[idx], c[idx], b[idx]));
-    }
-    return fmax(temp, EPSILON);
-}
 
-__device__ double dWdSigma(double x, double sigma, double c, double b)
-{
-    const double t = safe_divide(x - c, sigma);
-    const double t_sq = t * t;
-    const double t_pow = safe_pow(t_sq, b);
-    const double denom = safe_pow(1.0 + t_sq, 2.0);
-    return safe_divide(2.0 * b * t_pow, __fmul_rn(sigma, denom));
-}
+    const int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
-__device__ double dWdC(double x, double sigma, double c, double b)
-{
-    const double t = safe_divide(x - c, sigma);
-    const double t_sq = t * t;
-    const double t_pow = safe_pow(t_sq, b - 0.5);
-    const double denom = safe_pow(1.0 + t_sq, 2.0);
-    return safe_divide(2.0 * b * t * t_pow, __fmul_rn(sigma, denom));
-}
-
-__device__ double dWdB(double x, double sigma, double c, double b)
-{
-    const double t = safe_divide(x - c, sigma);
-    if (fabs(t) < EPSILON)
-        return 0.0;
-    const double t_sq = t * t;
-    const double t_pow = safe_pow(t_sq, b);
-    const double denom = safe_pow(1.0 + t_sq, 2.0);
-    const double log_t = __logf(fabs(t));
-    return safe_divide(-2.0 * t_pow * log_t, denom);
-}
-
-__device__ void compute_gradients(const double *x, const double *sigma, const double *c,
-                                  const double *b, const double *p, int n, int m,
-                                  double *dEdC, double *dEdSigma, double *dEdB)
-{
-    const int paramNum = blockIdx.x * blockDim.x + threadIdx.x;
-    if (paramNum >= n * m)
+    if (tid >= num_features * num_rules)
         return;
 
-    const int featureIdx = paramNum / m;
-    const int clusterIdx = paramNum % m;
+    const int feature_idx = tid / num_rules;
+    const int rule_idx = tid % num_rules;
 
-    double weightedSumC = 0.0;
-    double weightedSumSigma = 0.0;
-    double weightedSumB = 0.0;
+    double grad_c = 0, grad_sigma = 0, grad_b = 0;
+    const double x = input[feature_idx];
+    const double current_sigma = sigma[tid];
+    const double current_c = c[tid];
+    const double current_b = b[tid];
 
-    const double m_val = compute_m(x, c, sigma, b, n, m);
-
-    for (int roleIdx = 0; roleIdx < m; ++roleIdx)
+    // Вычисления градиентов
+    double m_val = 0.0;
+    for (int rule = 0; rule < num_rules; ++rule)
     {
-        double linearCombination = p[roleIdx * (n + 1)];
-#pragma unroll 4
-        for (int paramIdx = 1; paramIdx < n + 1; ++paramIdx)
+        double product = 1.0;
+        for (int f = 0; f < num_features; ++f)
         {
-            linearCombination = __fma_rn(p[roleIdx * (n + 1) + paramIdx], x[paramIdx - 1], linearCombination);
+            const int idx = f * num_rules + rule;
+            product *= fuzzy_membership(input[f], sigma[idx], c[idx], b[idx]);
+        }
+        m_val += product;
+    }
+
+    double inv_m_sq = 1.0 / (m_val * m_val);
+
+    for (int k = 0; k < num_rules; ++k)
+    {
+        double linear_comb = params[k * (num_features + 1)];
+        for (int j = 1; j <= num_features; ++j)
+        {
+            linear_comb += params[k * (num_features + 1) + j] * input[j - 1];
         }
 
-        const double l_val = compute_l(x, roleIdx, c, sigma, b, n, m);
-        const double denominator = __fmul_rn(m_val, m_val);
-        const double numerator = __fsub_rn(__fmul_rn(deltaKronecker(roleIdx, clusterIdx), m_val), l_val);
+        double l_val = 1;
 
-        double membershipProduct = 1.0;
-        for (int j = 0; j < n; ++j)
+        for (int f = 0; f < num_features; ++f)
         {
-            if (j != featureIdx)
+            const int idx = f * num_rules + k;
+            l_val *= fuzzy_membership(input[f], sigma[idx], c[idx], b[idx]);
+        }
+
+        double membership_product = 1.0;
+        for (int j = 0; j < num_features; ++j)
+        {
+            if (j != feature_idx)
             {
-                const int idx = j * m + clusterIdx;
-                membershipProduct = __fmul_rn(membershipProduct,
-                                              fuzzyFunction(x[j], sigma[idx], c[idx], b[idx]));
+                membership_product *= fuzzy_membership(input[j],
+                                                       sigma[j * num_rules + rule_idx],
+                                                       c[j * num_rules + rule_idx],
+                                                       b[j * num_rules + rule_idx]);
             }
         }
 
-        const double commonFactor = safe_divide(
-            __fmul_rn(numerator, membershipProduct),
-            denominator);
+        double common_factor = ((k == rule_idx) * m_val - l_val) *
+                               membership_product * inv_m_sq;
 
-        const double x_val = x[featureIdx];
-        const double currentSigma = sigma[paramNum];
-        const double currentC = c[paramNum];
-        const double currentB = b[paramNum];
+        double t = (x - current_c) / current_sigma;
+        double t_sq = t * t;
+        double t_pow_2b = pow(t_sq, current_b);
+        double inv_denom = 1.0 / pow(1.0 + t_pow_2b, 2);
 
-        weightedSumC = __fadd_rn(weightedSumC,
-                                 __fmul_rn(linearCombination,
-                                           __fmul_rn(commonFactor, dWdC(x_val, currentSigma, currentC, currentB))));
+        // Градиенты
+        grad_c = linear_comb * common_factor *
+                  (2 * current_b * pow(t_sq, current_b - 0.5) / current_sigma * inv_denom);
 
-        weightedSumSigma = __fadd_rn(weightedSumSigma,
-                                     __fmul_rn(linearCombination,
-                                               __fmul_rn(commonFactor, dWdSigma(x_val, currentSigma, currentC, currentB))));
+        grad_sigma = linear_comb * common_factor *
+                      (2 * current_b * t_pow_2b * t / current_sigma) * inv_denom;
 
-        weightedSumB = __fadd_rn(weightedSumB,
-                                 __fmul_rn(linearCombination,
-                                           __fmul_rn(commonFactor, dWdB(x_val, currentSigma, currentC, currentB))));
+        grad_b = linear_comb * common_factor *
+                  (-2 * t_pow_2b * log(fabs(t)) * inv_denom);
     }
 
-    *dEdC = weightedSumC;
-    *dEdSigma = weightedSumSigma;
-    *dEdB = weightedSumB;
+    grad_c *= target_error;
+    grad_sigma *= target_error;
+    grad_b *= target_error;
+
+    __syncthreads();
+    // Обработка градиентов
+    clip_gradient(&grad_c, config.grad_clip);
+    clip_gradient(&grad_sigma, config.grad_clip);
+    clip_gradient(&grad_b, config.grad_clip);
+
+    double newC = c[tid] - config.nu_c * grad_c;
+    double newB = b[tid] - config.nu_b * grad_b;
+    double newSigma = sigma[tid] - config.nu_sigma * grad_sigma;
+    if(!std::isnan(newC)) c[tid] = newC;
+    if(!std::isnan(newB)) b[tid] = newB;
+    if(!std::isnan(newSigma)) sigma[tid] = newSigma;
 }
 
-__device__ double device_predict(const double *x, const double *sigma, const double *c,
-                                 const double *b, const double *p, int n, int m)
+void print_parameter_changes(
+    const std::vector<double> &old_params,
+    const std::vector<double> &new_params,
+    const std::string &param_name,
+    int max_to_print = 5)
 {
-    double final_product = 0.0;
-    double sum_activation = 0.0;
-
-    for (int i = 0; i < m; ++i)
+    std::cout << "\n=== " << param_name << " Parameter Changes ===\n";
+    for (size_t i = 0; i < std::min(old_params.size(), new_params.size()); ++i)
     {
-        double activation = 1.0;
-        for (int j = 0; j < n; ++j)
+        if (i < max_to_print || i >= new_params.size() - max_to_print)
         {
-            int idx = j * m + i;
-            activation = __fmul_rn(activation, fuzzyFunction(x[j], sigma[idx], c[idx], b[idx]));
+            std::cout << std::fixed << std::setprecision(5)
+                      << "Param " << i << ": "
+                      << old_params[i] << " → " << new_params[i]
+                      << " (Δ=" << new_params[i] - old_params[i] << ")\n";
         }
-
-        double rule_output = p[i * (n + 1)];
-        for (int k = 0; k < n; ++k)
+        if (i == max_to_print)
         {
-            rule_output = __fma_rn(p[i * (n + 1) + k + 1], x[k], rule_output);
+            std::cout << "...\n";
         }
-
-        final_product = __fadd_rn(final_product, __fmul_rn(rule_output, activation));
-        sum_activation = __fadd_rn(sum_activation, activation);
     }
-
-    return safe_divide(final_product, sum_activation);
 }
 
-__global__ void learningKernel(double *c, double *sigma, double *b,
-                               const double *vector, const double target,
-                               const double *params, int n, int m, int dim,
-                               double nu, double *delta_c, double *delta_sigma, double *delta_b)
-{
-    const int tid = blockIdx.x * blockDim.x + threadIdx.x;
-    const int total_params = n * m;
-
-    if (tid >= total_params)
-        return;
-
-    double output = device_predict(vector, sigma, c, b, params, n, m);
-    double error = __fsub_rn(output, target);
-
-    double dEdC, dEdSigma, dEdB;
-    compute_gradients(vector, sigma, c, b, params, n, m, &dEdC, &dEdSigma, &dEdB);
-
-    if (!isnan(dEdC))
-        delta_c[tid] = __fmul_rn(-nu, __fmul_rn(error, dEdC));
-    if (!isnan(dEdSigma))
-        delta_sigma[tid] = __fmul_rn(-nu, __fmul_rn(error, dEdSigma));
-    if (!isnan(dEdB))
-        delta_b[tid] = __double2int_rn(__fsub_rn(delta_b[tid], __fmul_rn(nu, __fmul_rn(error, dEdB))));
-}
 cudaError_t learningKernelWrapper(
-    const boost::multi_array<double, 2> &vectors, const std::vector<double> &targets, int startIndex, int endIndex,
-    double nu, int n, int m, std::vector<double> &c, std::vector<double> &sigma, std::vector<double> &b,
-    boost::multi_array<double, 2> &p, tsk::TSK *tsk)
+    const boost::multi_array<double, 2> &input_vectors,
+    const std::vector<double> &targets,
+    int classesCount,
+    int start_idx, int end_idx,
+    learning::TrainingConfig config,
+    int num_features, int num_rules,
+    std::vector<double> &c_params,
+    std::vector<double> &sigma_params,
+    std::vector<double> &b_params,
+    boost::multi_array<double, 2> &linear_params,
+    tsk::TSK *fuzzy_model,
+    std::optional<learning::CallbackGetMetrics2Step> callbackGetMetrics2Step, double default_error)
 {
-    const int total_params = n * m;
+    cudaError_t err = cudaSuccess;
 
-    // Проверка размеров
-    if (vectors.shape()[0] < endIndex || targets.size() < endIndex)
+    // Перенос данных на устройство
+    thrust::device_vector<double> d_c(c_params.begin(), c_params.end());
+    thrust::device_vector<double> d_sigma(sigma_params.begin(), sigma_params.end());
+    thrust::device_vector<double> d_b(b_params.begin(), b_params.end());
+    thrust::device_vector<double> d_p(linear_params.data(),
+                                      linear_params.data() + num_rules * (num_features + 1));
+    thrust::device_vector<double> d_x(num_features);
+
+    // Конфигурация ядра
+    const int total_params = num_features * num_rules;
+    const int block_size = std::min(OPTIMAL_BLOCK_SIZE, total_params);
+    const int grid_size = (total_params + block_size - 1) / block_size;
+    const size_t shared_mem_size = num_features * sizeof(double);
+
+    double total_error = 0.0;
+    double total_accuracy = 0.0;
+    std::vector<double> predictes;
+
+    std::vector<double> old_c = c_params;
+    std::vector<double> old_sigma = sigma_params;
+    std::vector<double> old_b = b_params;
+
+    for (int i = start_idx; i < end_idx; ++i)
     {
-        return cudaErrorInvalidValue;
-    }
+        const double *x = input_vectors[i].origin();
+        thrust::copy(x, x + num_features, d_x.begin());
 
-    thrust::device_vector<double> d_c(c.begin(), c.end());
-    thrust::device_vector<double> d_sigma(sigma.begin(), sigma.end());
-    thrust::device_vector<double> d_b(b.begin(), b.end());
-    thrust::device_vector<double> d_params(p.data(), p.data() + m * (n + 1));
+        double predict = fuzzy_model->predict1(input_vectors[i]);
+        double error = predict - targets[i];
+        // error = error != 0 ? error: default_error;
+        double accuracy = predict;
 
-    thrust::device_vector<double> d_delta_c(total_params, 0.0);
-    thrust::device_vector<double> d_delta_sigma(total_params, 0.0);
-    thrust::device_vector<double> d_delta_b(total_params, 0.0);
-
-    const int numElements = n * m;
-    const int numBlocks = (total_params + numElements - 1) / numElements;
-    size_t sharedMemSize = (n * m + 2 * m) * sizeof(double);
-
-    for (int i = startIndex; i < endIndex; ++i)
-    {
-        const double *x = vectors[i].origin();
-        const double target = targets[i];
-
-        thrust::device_vector<double> d_x(x, x + n);
-
-        learningKernel<<<numBlocks, numElements, sharedMemSize>>>(
+        fuzzy_learning_kernel<<<grid_size, block_size, shared_mem_size>>>(
             thrust::raw_pointer_cast(d_c.data()),
             thrust::raw_pointer_cast(d_sigma.data()),
             thrust::raw_pointer_cast(d_b.data()),
             thrust::raw_pointer_cast(d_x.data()),
-            target,
-            thrust::raw_pointer_cast(d_params.data()),
-            n, m, vectors.shape()[1], nu,
-            thrust::raw_pointer_cast(d_delta_c.data()),
-            thrust::raw_pointer_cast(d_delta_sigma.data()),
-            thrust::raw_pointer_cast(d_delta_b.data()));
+            error,
+            thrust::raw_pointer_cast(d_p.data()),
+            num_features,
+            num_rules,
+            config);
 
-        cudaError_t err = cudaDeviceSynchronize();
-        if (err != cudaSuccess)
-            return err;
+        err = cudaDeviceSynchronize();
+        CHECK_CUDA_ERROR(err);
 
-        thrust::transform(d_c.begin(), d_c.end(), d_delta_c.begin(), d_c.begin(), thrust::plus<double>());
-        thrust::transform(d_sigma.begin(), d_sigma.end(), d_delta_sigma.begin(), d_sigma.begin(), thrust::plus<double>());
-        thrust::transform(d_b.begin(), d_b.end(), d_delta_b.begin(), d_b.begin(), thrust::plus<double>());
+        // Обновление модели
+        if (fuzzy_model != nullptr)
+        {
+            thrust::copy(d_c.begin(), d_c.end(), c_params.begin());
+            thrust::copy(d_sigma.begin(), d_sigma.end(), sigma_params.begin());
+            thrust::copy(d_b.begin(), d_b.end(), b_params.begin());
+
+            fuzzy_model->setC(c_params);
+            fuzzy_model->setSigma(sigma_params);
+            fuzzy_model->setB(b_params);
+        }
+
+        predict = fuzzy_model->predict1(input_vectors[i]);
+        double current_error = predict - targets[i];
+        total_error += current_error * current_error;
+        predictes.push_back(predict);
     }
 
-    thrust::copy(d_c.begin(), d_c.end(), c.begin());
-    thrust::copy(d_sigma.begin(), d_sigma.end(), sigma.begin());
-    thrust::copy(d_b.begin(), d_b.end(), b.begin());
+    total_error /= (end_idx - start_idx);
+    total_accuracy = metric::Metric::calculateAccuracy(targets, predictes, classesCount);
 
-    tsk->setC(c);
-    tsk->setSigma(sigma);
-    tsk->setB(b);
-
+    metric::Metric metric{total_accuracy, total_error};
+    if(callbackGetMetrics2Step.has_value()) (*callbackGetMetrics2Step)(metric);
+    // Print training summary
+    // std::cout << "\n=== Training Summary ===";
+    // print_parameter_changes(old_c, c_params, "Center (c)");
+    // print_parameter_changes(old_sigma, sigma_params, "Width (σ)");
+    // print_parameter_changes(old_b, b_params, "Shape (b)");
+    // std::cout << "\nAverage RMSE: " << sqrt(total_error) << "\n";
     return cudaSuccess;
 }

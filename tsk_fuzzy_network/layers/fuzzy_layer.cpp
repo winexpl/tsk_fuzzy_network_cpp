@@ -5,8 +5,12 @@
 #include <execution>
 
 double tsk::layers::generalGaussian(double x, double sigma, double c, double b) {
-    double value = 1.0 / (1.0 + std::pow( (x-c)/sigma, 2*b));
-    return value;
+    const double t = (x - c)/sigma;
+    const double t_sq = t * t;
+    const int b_rounded = b;
+    const double power = pow(t_sq, b_rounded);
+    return 1.0 / (1.0 + power);
+
 };
 
 tsk::layers::FuzzyLayer::FuzzyLayer(int dimInput, int dimOutput) :

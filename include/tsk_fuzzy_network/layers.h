@@ -48,7 +48,6 @@ struct tsk::layers::Layer {
     Layer(int dimInput, int dimOutput);
     int dimInput;
     int dimOutput;
-
     Layer() {}
 };
 
@@ -65,7 +64,7 @@ struct tsk::layers::FuzzyLayer : public tsk::layers::Layer {
     FuzzyLayer(int dimInput, int dimOutput);
     FuzzyLayer() {}
     template <tsk::is_indexed T>
-    std::vector<double> get(T&) const;
+    std::vector<double> get(const T&) const;
 
     friend class boost::serialization::access;
     template<class Archive>
@@ -91,9 +90,10 @@ struct tsk::layers::MultipleLayer : tsk::layers::Layer {
     MultipleLayer(int dimInput, int dimOutput, int N);
     MultipleLayer() {}
     template <tsk::is_indexed T, tsk::is_indexed Y>
-    std::vector<double> get(T&, Y&) const;
+    std::vector<double> get(const T&, const Y&) const;
 
     friend class boost::serialization::access;
+
     template<class Archive>
     void serialize(Archive& ar, const unsigned int version) {
         ar & dimInput;
@@ -132,7 +132,7 @@ struct tsk::layers::RoleMultipleLayer : tsk::layers::Layer {
     RoleMultipleLayer(int dimInput, int dimOutput);
     RoleMultipleLayer() {}
     template <tsk::is_indexed T>
-    std::vector<double> get(T&) const;
+    std::vector<double> get(const T&) const;
 
     friend class boost::serialization::access;
     template<class Archive>
@@ -149,7 +149,7 @@ struct tsk::layers::SumLayer : tsk::layers::Layer {
     SumLayer(int dimInput, int dimOutput);
     SumLayer() {}
     template <tsk::is_indexed T, tsk::is_indexed Y>
-    double get(T&, Y&) const;
+    double get(const T&, const Y&) const;
 
     friend class boost::serialization::access;
     template<class Archive>
@@ -160,7 +160,7 @@ struct tsk::layers::SumLayer : tsk::layers::Layer {
 };
 
 template <tsk::is_indexed T>
-std::vector<double> tsk::layers::FuzzyLayer::get(T& x) const {
+std::vector<double> tsk::layers::FuzzyLayer::get(const T& x) const {
     if(x.size() != dimInput)
         throw std::runtime_error("the size of the input vector is not equal to the dimension of the fuzzification layer");
     std::vector<double> y(dimOutput);
@@ -176,7 +176,7 @@ std::vector<double> tsk::layers::FuzzyLayer::get(T& x) const {
 }
 
 template <tsk::is_indexed T, tsk::is_indexed Y>
-std::vector<double> tsk::layers::MultipleLayer::get(T& v, Y& x) const {
+std::vector<double> tsk::layers::MultipleLayer::get(const T& v, const Y& x) const {
     if(v.size() != dimInput)
         throw std::runtime_error("the size of the input vector is not equal to the dimension of the multiplication layer");
     
@@ -198,7 +198,7 @@ std::vector<double> tsk::layers::MultipleLayer::get(T& v, Y& x) const {
 }
 
 template <tsk::is_indexed T>
-std::vector<double> tsk::layers::RoleMultipleLayer::get(T& x) const {
+std::vector<double> tsk::layers::RoleMultipleLayer::get(const T& x) const {
     if(x.size() != dimInput)
         throw std::runtime_error("the size of the input vector is not equal to the dimension of the multiplication layer");
     
@@ -216,7 +216,7 @@ std::vector<double> tsk::layers::RoleMultipleLayer::get(T& x) const {
 }
 
 template <tsk::is_indexed T, tsk::is_indexed Y>
-double tsk::layers::SumLayer::get(T& x, Y& v) const {
+double tsk::layers::SumLayer::get(const T& x, const Y& v) const {
     /**
      * x - выход предыдущего слоя
      * v - выход слоя role_multiple

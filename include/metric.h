@@ -9,6 +9,11 @@ namespace metric {
 
 class Metric {
 public:
+
+    double accuracy;
+    double mse;
+
+    Metric(double accuracy, double mse) : accuracy{accuracy}, mse{mse} {}
     Metric() = default;
 
     static double calculateAccuracy(const std::vector<double>& trueValues, const std::vector<double>& predictedValues, int classesCount) {

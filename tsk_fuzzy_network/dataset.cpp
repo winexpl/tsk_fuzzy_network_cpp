@@ -6,6 +6,7 @@
 #include <vector>
 #include <set>
 #include <boost/multi_array.hpp>
+#include <boost/multi_array/extent_gen.hpp>
 #include <random>
 #include <map>
 #include <hash_map>
@@ -56,18 +57,9 @@ boost::multi_array<double, 2> &minMaxNormalize(boost::multi_array<double, 2> &x)
 Dataset::Dataset(boost::multi_array<double, 2> x,
                  std::vector<double> d,
                  int dim,
-                 int classCount,
+                 int classCount, int vectorSize,
                  std::vector<std::string> paramNames,
-                 std::vector<std::string> classNames,
-                 std::map<int, std::map<std::string, double>> columnsMap,
-                 std::map<std::string, double> classMap) : x{x},
-                                                           d{d},
-                                                           dim{dim},
-                                                           classCount{classCount},
-                                                           paramNames{paramNames},
-                                                           classNames{classNames},
-                                                           columnsMap{columnsMap},
-                                                           classMap{classMap}
+                 std::vector<std::string> classNames) : dim{dim}, classCount{classCount}, x{x}, d{d}, vectorSize{vectorSize}, paramNames{paramNames}, classNames{classNames}
 {
     this->x = x;
     if (x.shape()[0] != d.size())
@@ -84,10 +76,8 @@ Dataset::Dataset(boost::multi_array<double, 2> x,
 Dataset::Dataset(boost::multi_array<double, 2> x,
                  std::vector<double> d,
                  int dim,
-                 int classCount) : x{x},
-                                   d{d},
-                                   dim{dim},
-                                   classCount{classCount}
+                 int classCount, int vectorSize) : dim{dim}, classCount{classCount}, x{x}, d{d}, vectorSize{vectorSize}
+
 {
     if (x.shape()[0] != d.size())
     {
@@ -96,7 +86,8 @@ Dataset::Dataset(boost::multi_array<double, 2> x,
     std::ostringstream logStream;
     logStream << "Датасет создан.\n"
               << "\tdim=" << dim << "\n"
-              << "\tclassCount=" << classCount << "\n";
+              << "\tclassCount=" << classCount << "\n"
+              << "\tx.length=" << x.shape()[0] << " " << "x[i].length=" << x.shape()[1] << "\n";
     Logger::getInstance().logInfo(logStream.str());
 }
 
@@ -136,8 +127,9 @@ void Dataset::shuffle()
     d = shuffledD;
 }
 
-Dataset Dataset::readFromCsv(std::string &filename)
+Dataset::Dataset(std::string &filename)
 {
+    std::locale::global(std::locale("C"));
     std::ifstream file{filename};
     if (!file.is_open())
     {
@@ -170,8 +162,108 @@ Dataset Dataset::readFromCsv(std::string &filename)
 
         if (!classMap.count(diString))
         {
+            classNames.push_back(diString);
             classMap.emplace(diString, classNum++);
         }
+        dString.emplace_back(diString);
+        xString.emplace_back(xiString);
+    }
+    size_t rows = xString.size();
+    size_t cols = xString[0].size();
+    double classCount = classMap.size();
+
+    boost::multi_array<double, 2> boost_x(boost::extents[rows][cols]);
+
+    for (size_t j = 0; j < cols; ++j)
+    {
+        if (isConvertibleToDouble(xString[0][j]))
+        {
+            for (size_t i = 0; i < rows; ++i)
+            {
+                boost_x[i][j] = std::stod(xString[i][j]);
+            }
+        }
+        else
+        {
+            std::map<std::string, double> columnMap;
+            int paramNum{0};
+
+            for (size_t i = 0; i < rows; ++i)
+            {
+                if (!columnMap.count(xString[i][j]))
+                {
+                    columnMap.emplace(xString[i][j], paramNum++);
+                    classNum++;
+                }
+            }
+
+            for (size_t i = 0; i < rows; ++i)
+            {
+                boost_x[i][j] = columnMap[xString[i][j]];
+            }
+            columnsMap.emplace(j, columnMap);
+        }
+    }
+
+    for (int i = 0; i < dString.size(); ++i)
+    {
+        d.emplace_back(classMap[dString[i]] / (classCount - 1));
+    }
+    
+    minMaxNormalize(boost_x);
+
+    this->x.resize(boost::extents[boost_x.shape()[0]][boost_x.shape()[1]]);
+    this->x = boost_x;
+    this->d = d;
+    this->dim = boost_x.shape()[0];
+    this->classCount = classMap.size();
+    this->vectorSize = boost_x.shape()[1];
+    this->paramNames = paramNames;
+    this->classNames = classNames;
+
+    std::cout << this->x[0][0] << " " << this->x[0][1] << std::endl;
+}
+
+Dataset Dataset::readFromCsv(std::string &filename)
+{
+    std::ifstream file{filename};
+    if (!file.is_open())
+    {
+        throw std::runtime_error("file not found or not permission");
+    }
+
+    std::vector<std::vector<double>> x;
+    std::vector<std::vector<std::string>> xString;
+    std::vector<double> d;
+    std::vector<std::string> dString;
+    std::vector<std::string> paramNames;
+    std::vector<std::string> classNames;
+
+    std::string line;
+    std::string token;
+    std::vector<std::string> xiString;
+
+    std::map<std::string, double> classMap;
+    std::map<int, std::map<std::string, double>> columnsMap;
+
+    std::getline(file, line, '\n');
+    paramNames = split(line, ',');
+    paramNames.pop_back();
+
+    double classNum{0};
+    while (std::getline(file, line, '\n'))
+    {
+        xiString = split(line, ',');
+        std::string diString = xiString[xiString.size() - 1];
+        xiString.pop_back();
+
+        if (!classMap.count(diString))
+        {
+            classNames.push_back(diString);
+            classMap.emplace(diString, classNum);
+            classNum++;
+        }
+
         dString.emplace_back(diString);
         xString.emplace_back(xiString);
     }
@@ -225,9 +317,7 @@ Dataset Dataset::readFromCsv(std::string &filename)
             d.emplace_back(classMap[dString[i]] / classCount);
         }
     }
-
-    minMaxNormalize(boost_x);
-    return Dataset(boost_x, d, boost_x.shape()[0], classMap.size(), paramNames, classNames, columnsMap, classMap);
+    return Dataset(boost_x, d, boost_x.shape()[0], classMap.size(), boost_x.shape()[1], paramNames, classNames);
 }
 
 std::pair<Dataset, Dataset> Dataset::splitDatasetOnTrainAndTest(double separationCoefficient)
@@ -252,8 +342,8 @@ std::pair<Dataset, Dataset> Dataset::splitDatasetOnTrainAndTest(double separatio
         testX[j - trainLength] = x[j];
     }
 
-    Dataset trainDataset(trainX, trainY, trainLength, classCount, paramNames, classNames, columnsMap, classMap);
-    Dataset testDataset(testX, testY, testLength, classCount, paramNames, classNames, columnsMap, classMap);
+    Dataset trainDataset(trainX, trainY, trainLength, classCount, vectorSize, paramNames, classNames);
+    Dataset testDataset(testX, testY, testLength, classCount, vectorSize, paramNames, classNames);
 
     return std::make_pair(trainDataset, testDataset);
 }
@@ -276,4 +366,14 @@ const std::vector<double> &Dataset::getD() const
 const boost::multi_array<double, 2> &Dataset::getX() const
 {
     return x;
+}
+
+const std::vector<std::string> &Dataset::getClassNames() const
+{
+    return classNames;
+}
+
+const std::vector<std::string> &Dataset::getParamNames() const
+{
+    return paramNames;
 }

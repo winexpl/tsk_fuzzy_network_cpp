@@ -16,8 +16,8 @@ void free_tsk_model(void* tsk_row) {
     delete static_cast<tsk::TSK*>(tsk_row);
 }
 
-void free_dataset(void* dataset_row) {
-    delete static_cast<Dataset*>(dataset_row);
+void free_dataset(Dataset* dataset_row) {
+    delete dataset_row;
 }
 
 void free_hybrid_algorithm(void* halg_raw) {
@@ -39,14 +39,16 @@ void* create_hybrid_alg(void* tsk_row, void* dataset_row) {
     return new learning::HybridAlgorithm(tsk, dataset);
 }
 
-void *load_dataset(char* path)
+Dataset *load_dataset(char* path)
 {
     std::string _path(path);
     Dataset dataset = Dataset::readFromCsv(_path);
-    return new Dataset(dataset);
+    Dataset* newDataset = new Dataset(dataset);
+    std::cout << newDataset->dim << "\n";
+    return newDataset;
 }
 
-void* create_dataset(void* x_raw, int x_rows, int x_cols, void* d_raw, int d_len, int classCount)
+Dataset* create_dataset(void* x_raw, int x_rows, int x_cols, void* d_raw, int d_len, int classCount)
 {
     boost::multi_array<double, 2> x(boost::extents[x_rows][x_cols]);
 
@@ -56,13 +58,13 @@ void* create_dataset(void* x_raw, int x_rows, int x_cols, void* d_raw, int d_len
     std::copy(x_data, x_data + x_rows * x_cols, x.data());
 
     std::vector<double> d(d_data, d_data + d_len);
-    return new Dataset(x, d, x_rows, classCount);
+    return new Dataset(x, d, x_rows, classCount, x_cols);
 }
 
 void learning_tsk(void *halg_raw)
 {
     learning::HybridAlgorithm *halg = static_cast<learning::HybridAlgorithm*>(halg_raw);
-    halg->learning(halg->dataset.getCountVectors(), 1, 5);
+    halg->learning(halg->dataset.getCountVectors(), 1, 5, learning::TrainingConfig{});
 }
 
 std::vector<double> tsk_predict(void* model, double* input, int input_rows, int input_cols, int* output_size) 
@@ -97,15 +99,21 @@ void *deserialize_tsk(std::string tsk_serialized) {
     return tsk;
 }
 
-
-std::string serialize_dataset(void* dataset) {
+std::string serialize_dataset(Dataset* dataset_raw) {
+    std::cout << "1111\n";
+    // Dataset *dataset = dataset_raw;
+    std::cout << dataset_raw->getClassCount() << "\n";
+    std::cout << dataset_raw->getX().shape()[0] << " " << dataset_raw->getX().shape()[1] << "\n";
     std::ostringstream oss;
+    std::cout << "3333\n";
     boost::archive::text_oarchive oa(oss);
-    oa << *static_cast<Dataset*>(dataset);
+    std::cout << "4444\n";
+    oa << *dataset_raw;
+    std::cout << "5555\n";
     return oss.str();
 }
 
-void* deserialize_dataset(const char* data) {
+Dataset* deserialize_dataset(const char* data) {
     std::istringstream iss(data);
     boost::archive::text_iarchive ia(iss);
     Dataset* dataset = new Dataset();

@@ -9,60 +9,30 @@ set(INCLUDE_DIRECTORY ${CMAKE_HOME_DIRECTORY}/../include)
 
 set(TSK_LIB_PATH ${CMAKE_HOME_DIRECTORY}/../lib/libTSK.so)
 
-add_executable(customer test_customer.cpp)
+find_package(Boost REQUIRED COMPONENTS log log_setup system thread serialization)
+find_package(nlohmann_json REQUIRED)
+find_package(TBB REQUIRED)
 
-add_executable(irises test_irises.cpp)
+add_executable(tic_tac_toc test_tic-tac-toc.cpp)
 
-add_executable(diabet test_diabet.cpp)
+add_executable(main main.cpp)
 
-
-target_include_directories(diabet
+target_include_directories(main
         PUBLIC
                 ${INCLUDE_DIRECTORY}
 )
 
-target_link_libraries(diabet PUBLIC ${TSK_LIB_PATH} )
+target_link_libraries(main PUBLIC ${TSK_LIB_PATH} )
+target_link_libraries(main PRIVATE nlohmann_json::nlohmann_json)
+target_link_libraries(main PRIVATE TBB::tbb)
+target_link_libraries(main PUBLIC Boost::log Boost::log_setup Boost::system Boost::thread Boost::serialization gtest_main gtest)
 
-find_package(nlohmann_json REQUIRED)
-target_link_libraries(diabet PRIVATE nlohmann_json::nlohmann_json)
-
-find_package(TBB REQUIRED)
-target_link_libraries(diabet PRIVATE TBB::tbb)
-
-find_package(Boost REQUIRED COMPONENTS log log_setup system thread serialization)
-target_link_libraries(diabet PUBLIC Boost::log Boost::log_setup Boost::system Boost::thread Boost::serialization gtest_main gtest)
-
-
-
-target_include_directories(customer
+target_include_directories(tic_tac_toc
         PUBLIC
                 ${INCLUDE_DIRECTORY}
 )
 
-target_link_libraries(customer PUBLIC ${TSK_LIB_PATH} )
-
-find_package(nlohmann_json REQUIRED)
-target_link_libraries(customer PRIVATE nlohmann_json::nlohmann_json)
-
-find_package(TBB REQUIRED)
-target_link_libraries(customer PRIVATE TBB::tbb)
-
-find_package(Boost REQUIRED COMPONENTS log log_setup system thread serialization)
-target_link_libraries(customer PUBLIC Boost::log Boost::log_setup Boost::system Boost::thread Boost::serialization gtest_main gtest)
-
-
-target_include_directories(irises
-        PUBLIC
-                ${INCLUDE_DIRECTORY}
-)
-
-target_link_libraries(irises PUBLIC ${TSK_LIB_PATH} )
-
-find_package(nlohmann_json REQUIRED)
-target_link_libraries(irises PRIVATE nlohmann_json::nlohmann_json)
-
-find_package(TBB REQUIRED)
-target_link_libraries(irises PRIVATE TBB::tbb)
-
-find_package(Boost REQUIRED COMPONENTS log log_setup system thread serialization)
-target_link_libraries(irises PUBLIC Boost::log Boost::log_setup Boost::system Boost::thread Boost::serialization gtest_main gtest)
+target_link_libraries(tic_tac_toc PUBLIC ${TSK_LIB_PATH} )
+target_link_libraries(tic_tac_toc PRIVATE nlohmann_json::nlohmann_json)
+target_link_libraries(tic_tac_toc PRIVATE TBB::tbb)
+target_link_libraries(tic_tac_toc PUBLIC Boost::log Boost::log_setup Boost::system Boost::thread Boost::serialization gtest_main gtest)

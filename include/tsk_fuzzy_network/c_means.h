@@ -23,6 +23,7 @@ public:
         }
         return centroids1d;
     }
+    
     const std::vector<double> getSigma() const
     {
         std::vector<double> sigma1d;

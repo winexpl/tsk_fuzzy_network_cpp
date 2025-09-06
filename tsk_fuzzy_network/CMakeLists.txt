@@ -12,9 +12,10 @@ endif()
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-relaxed-constexpr")
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g")
 set(CMAKE_CUDA_ARCHITECTURES "89")
-
-# Enable CUDA separable compilation
 set(CMAKE_CUDA_SEPARABLE_COMPILATION ON)
+
+find_package(TBB REQUIRED)
+
 
 set(LEARNING_SOURCE_FILES
     learning/hybrid_algorithm.cpp
@@ -35,6 +36,9 @@ enable_language(CUDA)
 
 add_library(TSK SHARED ${LAYERS_SOURCE_FILES} ${LEARNING_SOURCE_FILES} dataset.cpp logger.cpp fuzzy_api.cpp)
 
+target_link_libraries(TSK PRIVATE TBB::tbb)
+
+
 target_include_directories(TSK
     PUBLIC
     ${INCLUDE_DIRECTORY}
@@ -46,16 +50,15 @@ target_link_libraries(TSK
     ${CUDA_cudart_static_LIBRARY}
 )
 
-# Set CUDA architecture (adjust for your GPU)
 set(CUDA_ARCHITECTURES "native" CACHE STRING "CUDA architectures")
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-relaxed-constexpr")
 
 find_package(Boost REQUIRED COMPONENTS log log_setup system thread serialization)
-target_link_libraries(TSK PUBLIC 
-    Boost::log 
-    Boost::log_setup 
-    Boost::system 
-    Boost::thread 
+target_link_libraries(TSK PRIVATE 
+    Boost::log
+    Boost::log_setup
+    Boost::system
+    Boost::thread
     Boost::serialization
 )
 

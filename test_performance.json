@@ -1,0 +1,52 @@
+{
+    "tests": [
+        {
+            "details": {
+                "parameters": {
+                    "clusters": 2,
+                    "epochs": 20
+                },
+                "performance": [
+                    {
+                        "accuracy": 1.0,
+                        "device": "CPU",
+                        "throughput_samples_per_sec": 7.774680944697081,
+                        "training_time_ms": 13634
+                    },
+                    {
+                        "accuracy": 0.8222222222222222,
+                        "device": "GPU",
+                        "throughput_samples_per_sec": 9.808457481262145,
+                        "training_time_ms": 10807
+                    }
+                ]
+            },
+            "name": "PerformanceTest.IrisDatasetCPUvsGPU",
+            "status": "PASSED",
+            "time_ms": 24443
+        },
+        {
+            "details": {
+                "parameters": {
+                    "clusters": 2,
+                    "epochs": 50
+                },
+                "performance": [
+                    {
+                        "device": "CPU",
+                        "throughput_samples_per_sec": 8.387934036020637,
+                        "training_time_ms": 31593
+                    },
+                    {
+                        "device": "GPU",
+                        "throughput_samples_per_sec": 10.011333585190782,
+                        "training_time_ms": 26470
+                    }
+                ]
+            },
+            "name": "PerformanceTest.LargeDatasetCPUvsGPU",
+            "status": "PASSED",
+            "time_ms": 58065
+        }
+    ]
+}
